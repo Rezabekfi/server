@@ -1,4 +1,4 @@
-#include "QuoridorServer.h"
+#include "quoridor_server.h"
 #include <iostream>
 
 int main() {

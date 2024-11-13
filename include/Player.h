@@ -8,5 +8,5 @@ public:
     std::pair<int, int> position;
 
     explicit Player(int sock);
-    void sendMessage(const std::string& message);
+    void send_message(const std::string& message);
 }; 

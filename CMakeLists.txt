@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(QuoridorServer)
+project(quoridor_server)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,9 +10,9 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Add all source files
 add_executable(quoridor_server
     src/main.cpp
-    src/Player.cpp
-    src/QuoridorGame.cpp
-    src/QuoridorServer.cpp
+    src/player.cpp
+    src/quoridor_game.cpp
+    src/quoridor_server.cpp
 )
 
 # Link against pthread for thread support
