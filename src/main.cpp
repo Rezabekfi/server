@@ -3,6 +3,7 @@
 
 int main() {
     try {
+        std::cout << "Starting server..." << std::endl;
         QuoridorServer server;
         std::cout << "Server started on port 5002" << std::endl;
         server.start(5002);

@@ -10,6 +10,7 @@ public class QuoridorClient {
 
     public QuoridorClient(String host, int port) throws IOException {
         socket = new Socket(host, port);
+        socket.setTcpNoDelay(true);
         out = new PrintWriter(socket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         isRunning = true;
@@ -21,7 +22,6 @@ public class QuoridorClient {
             try {
                 String message;
                 while (isRunning && (message = in.readLine()) != null) {
-                    System.out.println("RECEIVED: " + message);
                     handleServerMessage(message);
                 }
             } catch (IOException e) {
