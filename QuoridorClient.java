@@ -41,21 +41,7 @@ public class QuoridorClient {
     }
 
     private void handleServerMessage(String message) {
-        try {
-            // Simple message parsing
-            if (message.contains("\"type\":\"welcome\"")) {
-                String welcomeMsg = extractValue(message, "message");
-                System.out.println("Connected to server: " + welcomeMsg);
-            } else if (message.contains("\"type\":\"waiting\"")) {
-                System.out.println("Waiting for opponent...");
-            } else if (message.contains("\"type\":\"game_started\"")) {
-                System.out.println("Game started!");
-            } else {
-                System.out.println("Received message: " + message);
-            }
-        } catch (Exception e) {
-            System.err.println("Error parsing server message: " + e.getMessage());
-        }
+        System.out.println("Received message: " + message);
     }
 
     private String extractValue(String jsonString, String key) {

@@ -3,8 +3,11 @@
 #include <map>
 #include <optional>
 #include <nlohmann/json.hpp>
-#include "quoridor_game.h"
-#include "Player.h"
+
+// Forward declarations
+class Player;
+class QuoridorGame;
+
 enum class MessageType {
     WELCOME,
     WAITING,
@@ -19,7 +22,7 @@ enum class MessageType {
 
 class Message {
 private:
-    nlohmann::json message;
+    nlohmann::ordered_json message;
     MessageType type;
 
     void add_player(Player* player);
@@ -30,11 +33,11 @@ public:
     
     void set_type(MessageType type);
     void set_data(const std::string& key, const std::string& value);
-    void set_data(const std::string& key, const nlohmann::json& value);
+    void set_data(const std::string& key, const nlohmann::ordered_json& value);
     
     MessageType get_type() const;
     std::optional<std::string> get_data(const std::string& key) const;
-    std::optional<nlohmann::json> get_data_object(const std::string& key) const;
+    std::optional<nlohmann::ordered_json> get_data_object(const std::string& key) const;
     
     std::string to_json() const;
     bool validate() const;

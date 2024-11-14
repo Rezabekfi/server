@@ -22,10 +22,6 @@ bool Move::get_is_horizontal() const {
     return is_horizontal;
 }
 
-bool Move::get_is_horizontal() const {
-    return is_horizontal;
-}
-
 std::vector<std::pair<int, int>> Move::get_position() const {
     return position;
 }

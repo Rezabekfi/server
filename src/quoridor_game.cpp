@@ -104,3 +104,13 @@ std::vector<Player*> QuoridorGame::get_players() const {
 void QuoridorGame::set_players(const std::vector<Player*>& players) {
     this->players = players;
 }
+
+bool QuoridorGame::check_game_end() {
+    // TODO:
+    return false;
+}
+
+bool QuoridorGame::can_move(Move move) {
+    // TODO:
+    return true;
+}

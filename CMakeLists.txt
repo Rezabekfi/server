@@ -22,6 +22,7 @@ add_executable(quoridor_server
     src/quoridor_game.cpp
     src/quoridor_server.cpp
     src/message.cpp
+    src/move.cpp
 )
 
 # Link against pthread and nlohmann_json

@@ -1,22 +1,34 @@
 #include "message.h"
+#include "player.h"
+#include "quoridor_game.h"
 #include <stdexcept>
+#include <iostream>
 
 Message::Message() {
-    message = nlohmann::json::object();
-    message["data"] = nlohmann::json::object();
+    message = nlohmann::ordered_json::object();
+    message = {
+        {"type", message_type_to_string(MessageType::WRONG_MESSAGE)},
+        {"data", nlohmann::ordered_json::object()}
+    };
+    type = MessageType::WRONG_MESSAGE;
 }
 
 Message::Message(const std::string& json_string) {
     try {
-        message = nlohmann::json::parse(json_string);
+        message = nlohmann::ordered_json::parse(json_string);
         type = string_to_message_type(message["type"].get<std::string>());
         if (!message.contains("data")) {
-            message["data"] = nlohmann::json::object();
+            message = {
+                {"type", message_type_to_string(type)},
+                {"data", nlohmann::ordered_json::object()}
+            };
         }
     } catch (const nlohmann::json::exception& e) {
         type = MessageType::WRONG_MESSAGE;
-        message = nlohmann::json::object();
-        message["data"] = nlohmann::json::object();
+        message = {
+            {"type", message_type_to_string(MessageType::WRONG_MESSAGE)},
+            {"data", nlohmann::ordered_json::object()}
+        };
     }
 }
 
@@ -29,7 +41,7 @@ void Message::set_data(const std::string& key, const std::string& value) {
     message["data"][key] = value;
 }
 
-void Message::set_data(const std::string& key, const nlohmann::json& value) {
+void Message::set_data(const std::string& key, const nlohmann::ordered_json& value) {
     message["data"][key] = value;
 }
 
@@ -44,7 +56,7 @@ std::optional<std::string> Message::get_data(const std::string& key) const {
     return std::nullopt;
 }
 
-std::optional<nlohmann::json> Message::get_data_object(const std::string& key) const {
+std::optional<nlohmann::ordered_json> Message::get_data_object(const std::string& key) const {
     if (message["data"].contains(key)) {
         return message["data"][key];
     }
@@ -110,7 +122,7 @@ Message Message::create_next_turn(QuoridorGame* game) {
 
 void Message::add_player(Player* player) {
     if (!message["data"].contains("players")) {
-        message["data"]["players"] = nlohmann::json::array();
+        message["data"]["players"] = nlohmann::ordered_json::array();
     }
     
     message["data"]["players"].push_back({
