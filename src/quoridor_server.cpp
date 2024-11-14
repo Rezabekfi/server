@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netinet/tcp.h>
+#include "message.h"
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -52,8 +53,7 @@ void QuoridorServer::handle_client(int client_socket) {
     Player* player = new Player(client_socket);
 
     // Send welcome message
-    std::string welcome_msg = "{\"type\":\"welcome\",\"message\":\"Connected to Quoridor server\"}";
-    player->send_message(welcome_msg);
+    player->send_message(Message::create_welcome("Connected to Quoridor server"));
 
     // Handle matchmaking
     {
@@ -61,8 +61,7 @@ void QuoridorServer::handle_client(int client_socket) {
         if (waiting_players.empty()) {
             std::cout << "No opponent found, adding player to waiting list" << std::endl;
             waiting_players.push_back(player);
-            std::string wait_msg = "{\"type\":\"waiting\",\"message\":\"Waiting for opponent...\"}";
-            player->send_message(wait_msg);
+            player->send_message(Message::create_waiting());
         } else {
             Player* opponent = waiting_players.back();
             waiting_players.pop_back();

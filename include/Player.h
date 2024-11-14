@@ -9,4 +9,5 @@ public:
 
     explicit Player(int sock);
     void send_message(const std::string& message);
+    void send_message(const Message& message);
 }; 

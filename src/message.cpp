@@ -1,119 +1,105 @@
 #include "message.h"
-#include <sstream>
+#include <stdexcept>
 
-Message::Message() {}
+Message::Message() {
+    message = nlohmann::json::object();
+    message["data"] = nlohmann::json::object();
+}
 
 Message::Message(const std::string& json_string) {
-    size_t pos = 0;
-    while ((pos = json_string.find("\"", pos)) != std::string::npos) {
-        size_t key_start = pos + 1;
-        size_t key_end = json_string.find("\":", pos);
-        if (key_end == std::string::npos) break;
-        
-        std::string key = json_string.substr(key_start, key_end - key_start);
-        
-        size_t value_start = json_string.find("\"", key_end + 2) + 1;
-        size_t value_end = json_string.find("\"", value_start);
-        if (value_end == std::string::npos) break;
-        
-        std::string value = json_string.substr(value_start, value_end - value_start);
-        data[key] = value;
-        
-        pos = value_end + 1;
+    try {
+        message = nlohmann::json::parse(json_string);
+        type = string_to_message_type(message["type"].get<std::string>());
+        if (!message.contains("data")) {
+            message["data"] = nlohmann::json::object();
+        }
+    } catch (const nlohmann::json::exception& e) {
+        type = MessageType::WRONG_MESSAGE;
+        message = nlohmann::json::object();
+        message["data"] = nlohmann::json::object();
     }
 }
 
-bool Message::validate() {
-    return true;
+void Message::set_type(MessageType msg_type) {
+    type = msg_type;
+    message["type"] = message_type_to_string(type);
 }
 
-void Message::set_type(MessageType type) {
-    this->type = type;
+void Message::set_data(const std::string& key, const std::string& value) {
+    message["data"][key] = value;
 }
 
-void Message::set_value(const std::string& key, const std::string& value) {
-    data[key] = value;
+void Message::set_data(const std::string& key, const nlohmann::json& value) {
+    message["data"][key] = value;
 }
 
 MessageType Message::get_type() const {
     return type;
 }
 
-std::optional<std::string> Message::get_value(const std::string& key) const {
-    auto it = data.find(key);
-    if (it != data.end()) {
-        return it->second;
+std::optional<std::string> Message::get_data(const std::string& key) const {
+    if (message["data"].contains(key)) {
+        return message["data"][key].get<std::string>();
+    }
+    return std::nullopt;
+}
+
+std::optional<nlohmann::json> Message::get_data_object(const std::string& key) const {
+    if (message["data"].contains(key)) {
+        return message["data"][key];
     }
     return std::nullopt;
 }
 
 std::string Message::to_json() const {
-    std::stringstream ss;
-    ss << "{";
-    bool first = true;
-    for (const auto& [key, value] : data) {
-        if (!first) ss << ",";
-        ss << "\"" << key << "\":\"" << value << "\"";
-        first = false;
-    }
-    ss << "}";
-    return ss.str();
+    return message.dump();
 }
 
-// Static factory methods
-Message Message::create_game_started() {
-    Message msg;
-    msg.set_type(MessageType::GAME_STARTED);
-    return msg;
+// TOOD: might need more thorough validation
+bool Message::validate() const {
+    return message.contains("type") && message.contains("data");
 }
 
-Message Message::create_welcome(const std::string& welcome_text) {
+Message Message::create_welcome(const std::string& message) {
     Message msg;
     msg.set_type(MessageType::WELCOME);
-    msg.set_value("message", welcome_text);
+    msg.set_data("message", message);
     return msg;
 }
 
-Message Message::create_waiting(const std::string& wait_text) {
+Message Message::create_waiting() {
     Message msg;
     msg.set_type(MessageType::WAITING);
-    msg.set_value("message", wait_text);
     return msg;
 }
 
-const std::map<MessageType, std::string> type_to_string_map = {
-    { GAME_STARTED, "game_started" },
-    { WELCOME, "welcome" },
-    { WAITING, "waiting" },
-    { GAME_ENDED, "game_ended" },
-    { MOVE, "move" },
-    { MOVE_RESULT, "move_result" },
-    { ERROR, "error" },
-    { WRONG_MESSAGE, "wrong_message" }
-};
+Message Message::create_game_started(const std::string& lobby_id) {
+    Message msg;
+    msg.set_type(MessageType::GAME_STARTED);
+    msg.set_data("lobby_id", lobby_id);
+    return msg;
+}
 
-const std::map<std::string, MessageType> string_to_type_map = {
-    { "game_started", GAME_STARTED },
-    { "welcome", WELCOME },
-    { "waiting", WAITING },
-    { "game_ended", GAME_ENDED },
-    { "move", MOVE },
-    { "move_result", MOVE_RESULT },
-    { "error", ERROR },
-    { "wrong_message", WRONG_MESSAGE }
-};
-
-// Function implementations
 std::string Message::message_type_to_string(MessageType type) {
-    auto it = type_to_string_map.find(type);
-    return (it != type_to_string_map.end()) ? it->second : "unknown";
+    switch (type) {
+        case MessageType::WELCOME: return "welcome";
+        case MessageType::WAITING: return "waiting";
+        case MessageType::GAME_STARTED: return "game_started";
+        case MessageType::GAME_ENDED: return "game_ended";
+        case MessageType::ERROR: return "error";
+        case MessageType::WRONG_MESSAGE: return "wrong_message";
+        case MessageType::MOVE: return "move";
+        default: return "unknown";
+    }
 }
 
 MessageType Message::string_to_message_type(const std::string& typeStr) {
-    auto it = string_to_type_map.find(typeStr);
-    return (it != string_to_type_map.end()) ? it->second : WRONG_MESSAGE;
+    if (typeStr == "welcome") return MessageType::WELCOME;
+    if (typeStr == "waiting") return MessageType::WAITING;
+    if (typeStr == "game_started") return MessageType::GAME_STARTED;
+    if (typeStr == "game_ended") return MessageType::GAME_ENDED;
+    if (typeStr == "move") return MessageType::MOVE;
+    if (typeStr == "error") return MessageType::ERROR;
+    return MessageType::WRONG_MESSAGE;
 }
 
-void Message::setup_message_type(const std::string& type_str) {
-    type = string_to_message_type(type_str);
-}
