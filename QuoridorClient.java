@@ -43,12 +43,13 @@ public class QuoridorClient {
     private void handleServerMessage(String message) {
         System.out.println("Received message: " + message);
     }
-
+    /*
     private String extractValue(String jsonString, String key) {
         int startIndex = jsonString.indexOf("\"" + key + "\":\"") + key.length() + 4;
         int endIndex = jsonString.indexOf("\"", startIndex);
         return jsonString.substring(startIndex, endIndex);
     }
+    */
 
     private void handleUserInput(String input) {
         if (input.equals("quit")) {
