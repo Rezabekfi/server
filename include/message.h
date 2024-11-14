@@ -4,7 +4,7 @@
 #include <optional>
 #include <nlohmann/json.hpp>
 #include "quoridor_game.h"
-
+#include "Player.h"
 enum class MessageType {
     WELCOME,
     WAITING,
@@ -12,7 +12,9 @@ enum class MessageType {
     GAME_ENDED,
     MOVE,
     ERROR,
-    WRONG_MESSAGE
+    WRONG_MESSAGE,
+    ACK,
+    NEXT_TURN
 };
 
 class Message {
@@ -20,6 +22,7 @@ private:
     nlohmann::json message;
     MessageType type;
 
+    void add_player(Player* player);
 public:
     
     Message();
@@ -40,7 +43,9 @@ public:
     static Message create_welcome(const std::string& message);
     static Message create_waiting();
     static Message create_game_started(QuoridorGame* game);
-    
+    static Message create_game_ended(QuoridorGame* game);
+    static Message create_error(const std::string& message);
+    static Message create_next_turn(QuoridorGame* game);
     
     // Type conversion helpers
     static std::string message_type_to_string(MessageType type);

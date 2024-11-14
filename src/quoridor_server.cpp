@@ -54,6 +54,7 @@ void QuoridorServer::handle_client(int client_socket) {
 
     // Send welcome message
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
+    QuoridorGame* game = nullptr;
 
     // Handle matchmaking
     {
@@ -66,12 +67,13 @@ void QuoridorServer::handle_client(int client_socket) {
             Player* opponent = waiting_players.back();
             waiting_players.pop_back();
 
-            QuoridorGame* game = new QuoridorGame();
+            game = new QuoridorGame();
             game->add_player(opponent);
             game->add_player(player);
 
             int game_id = ++game_id_counter;
             active_games[game_id] = game;
+            game->set_lobby_id(game_id);
         }
     }
 
@@ -82,7 +84,10 @@ void QuoridorServer::handle_client(int client_socket) {
         if (bytes_read <= 0) break;
 
         buffer[bytes_read] = '\0';
-        handle_game_message(player, buffer);
+        if (!handle_game_message(game, player, buffer)) {
+            // handle disconecting client
+            break;
+        }
     }
 
     // Cleanup
@@ -90,8 +95,42 @@ void QuoridorServer::handle_client(int client_socket) {
     delete player;
 }
 
-void QuoridorServer::handle_game_message(Player* player, const char* message) {
-    // TODO: Implement game message handling
+bool QuoridorServer::validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message) {
+    if (game == nullptr) {
+        player->send_message(Message::create_error("Game not found"));
+        return false;
+    }
+
+    message = Message(message_string);
+    if (!message.validate()) {
+        player->send_message(Message::create_error("Invalid message"));
+        return false;
+    }
+
+    if (message.get_type() == MessageType::ACK) {
+        std::cout << "ACK received" << std::endl;
+        return true;
+    }
+
+    Move move(message);
+    if (!game->can_move(move)) {
+        player->send_message(Message::create_error("Invalid move"));
+        return false;
+    }
+
+    return true;
+}
+
+bool QuoridorServer::handle_game_message(QuoridorGame* game, Player* player, const char* message_string) {
+    Message message;
+    if (!validate_client_message(game, player, message_string, message)) {
+        return false;
+    }
+
+    Move move(message);
+    game->handle_move(move);
+    // send message to all players -> notify about next turn or if game ended
+    return true;
 }
 
 QuoridorServer::~QuoridorServer() {

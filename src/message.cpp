@@ -73,11 +73,51 @@ Message Message::create_waiting() {
     return msg;
 }
 
-Message Message::create_game_started(const std::string& lobby_id) {
+Message Message::create_game_started(QuoridorGame* game) {
     Message msg;
     msg.set_type(MessageType::GAME_STARTED);
-    msg.set_data("lobby_id", lobby_id);
+    msg.set_data("lobby_id", game->get_lobby_id());
     return msg;
+}
+
+Message Message::create_game_ended(QuoridorGame* game) {
+    Message msg;
+    msg.set_type(MessageType::GAME_ENDED);
+    msg.set_data("lobby_id", game->get_lobby_id());
+    return msg;
+}
+
+Message Message::create_error(const std::string& message) {
+    Message msg;
+    msg.set_type(MessageType::ERROR);
+    msg.set_data("message", message);
+    return msg;
+}
+
+Message Message::create_next_turn(QuoridorGame* game) {
+    Message msg;
+    msg.set_type(MessageType::NEXT_TURN);
+    msg.set_data("lobby_id", game->get_lobby_id());
+    msg.set_data("board", game->get_board_string());
+    msg.set_data("current_player_id", game->get_players()[game->get_current_player()]->id);
+    
+    // Add players using the new method
+    msg.add_player(game->get_players()[0]);
+    msg.add_player(game->get_players()[1]);
+    
+    return msg;
+}
+
+void Message::add_player(Player* player) {
+    if (!message["data"].contains("players")) {
+        message["data"]["players"] = nlohmann::json::array();
+    }
+    
+    message["data"]["players"].push_back({
+        {"id", player->id},
+        {"name", player->name},
+        {"color", player->color}
+    });
 }
 
 std::string Message::message_type_to_string(MessageType type) {
@@ -89,6 +129,8 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::ERROR: return "error";
         case MessageType::WRONG_MESSAGE: return "wrong_message";
         case MessageType::MOVE: return "move";
+        case MessageType::ACK: return "ack";
+        case MessageType::NEXT_TURN: return "next_turn";
         default: return "unknown";
     }
 }
@@ -99,7 +141,9 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "game_started") return MessageType::GAME_STARTED;
     if (typeStr == "game_ended") return MessageType::GAME_ENDED;
     if (typeStr == "move") return MessageType::MOVE;
+    if (typeStr == "ack") return MessageType::ACK;
     if (typeStr == "error") return MessageType::ERROR;
+    if (typeStr == "next_turn") return MessageType::NEXT_TURN;
     return MessageType::WRONG_MESSAGE;
 }
 
