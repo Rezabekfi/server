@@ -113,17 +113,18 @@ bool QuoridorServer::validate_client_message(QuoridorGame* game, Player* player,
     }
 
     Move move(message);
-    if (!game->can_move(move)) {
-        player->send_message(Message::create_error("Invalid move"));
+    if (!move.is_valid_structure) {
+        player->send_message(Message::create_error("Invalid move structure"));
         return false;
     }
-
+    
     return true;
 }
 
 bool QuoridorServer::handle_game_message(QuoridorGame* game, Player* player, const char* message_string) {
     Message message;
-    if (!validate_client_message(game, player, message_string, message)) {
+    if (!validate_client_message(game, player, message_string, message)
+    || (message.get_type() != MessageType::MOVE && message.get_type() != MessageType::ACK)) {
         return false;
     }
 

@@ -23,6 +23,8 @@ private:
     size_t lobby_id;
 
     void initialize_board();
+    void apply_move(Move move);
+    bool check_game_end();
 
 public:
     QuoridorGame();

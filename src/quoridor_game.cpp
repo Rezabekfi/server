@@ -31,6 +31,26 @@ void QuoridorGame::initialize_game() {
 
     state = GameState::IN_PROGRESS;
     notify_all_players(Message::create_game_started(this));
+    send_next_turn();
+}
+
+
+void QuoridorGame::handle_move(Move move) {
+    if (!can_move(move)) {
+        players[current_player]->send_message(Message::create_error("Invalid move"));
+        return;
+    }
+    // handle move
+    apply_move(move);
+    send_next_turn();
+    if (check_game_end()) {
+        // handle game end TODO
+        return;
+    }
+}
+// TODO: implement move IMPORTANT
+void QuoridorGame::apply_move(Move move) {
+    // apply move
 }
 
 void QuoridorGame::notify_all_players(Message message) {
@@ -83,3 +103,4 @@ std::vector<Player*> QuoridorGame::get_players() const {
 }
 void QuoridorGame::set_players(const std::vector<Player*>& players) {
     this->players = players;
+}
