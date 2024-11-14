@@ -57,8 +57,9 @@ public class QuoridorClient {
             return;
         }
 
+
         // Create a move message
-        String moveMessage = String.format("{\"type\":\"move\",\"command\":\"%s\"}", input);
+        String moveMessage = String.format("{\"type\":\"name_response\",\"data\":{\"name\":\"%s\"}}", input);
         out.println(moveMessage);
     }
 

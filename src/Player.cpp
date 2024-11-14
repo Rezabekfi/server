@@ -14,3 +14,19 @@ void Player::send_message(const std::string& message) {
 void Player::send_message(const Message& message) {
     send_message(message.to_json());
 }
+
+void Player::set_id(std::string id) {
+    this->id = id;
+}
+
+void Player::set_name(std::string name) {
+    this->name = name;
+}
+
+void Player::set_position(std::pair<int, int> position) {
+    this->position = position;
+}
+
+void Player::set_color(std::string color) {
+    this->color = color;
+}

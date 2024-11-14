@@ -52,8 +52,33 @@ void QuoridorServer::start(int port) {
 void QuoridorServer::handle_client(int client_socket) {
     Player* player = new Player(client_socket);
 
-    // Send welcome message
+    // Send welcome message and request name
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
+    player->send_message(Message::create_name_request());
+
+    // Wait for name response
+    char buffer[1024];
+    bool name_received = false;
+    while (!name_received) {
+        int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes_read <= 0) {
+            close(client_socket);
+            delete player;
+            return;
+        }
+        buffer[bytes_read] = '\0';
+        
+        Message msg(buffer);
+        std::cout << "Received message: " << msg.to_json() << std::endl;
+        if (msg.get_type() == MessageType::NAME_RESPONSE) {
+            player->set_name(msg.get_data("name").value());
+            name_received = true;
+        } else {
+            player->send_message(Message::create_error("Please provide your name first"));
+            player->send_message(Message::create_name_request());
+        }
+    }
+
     QuoridorGame* game = nullptr;
 
     // Handle matchmaking
@@ -68,17 +93,17 @@ void QuoridorServer::handle_client(int client_socket) {
             waiting_players.pop_back();
 
             game = new QuoridorGame();
-            game->add_player(opponent);
-            game->add_player(player);
-
+            
             int game_id = ++game_id_counter;
             active_games[game_id] = game;
+
             game->set_lobby_id(game_id);
+            game->add_player(opponent);
+            game->add_player(player);
         }
     }
 
     // Main client loop
-    char buffer[1024];
     while (true) {
         int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
         if (bytes_read <= 0) break;

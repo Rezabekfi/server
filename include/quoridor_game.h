@@ -9,7 +9,7 @@
 class QuoridorGame {
 private:
     static const int BOARD_SIZE = 9;
-    static const char EMPTY_CELL = ' ';
+    static const char EMPTY_CELL = 'X';
     static const char PLAYER_1_CELL = '1';
     static const char PLAYER_2_CELL = '2';
 
@@ -22,6 +22,7 @@ private:
     std::mutex game_mutex;
     size_t lobby_id;
 
+    void initialize_players();
     void initialize_board();
     void apply_move(Move move);
     bool check_game_end();

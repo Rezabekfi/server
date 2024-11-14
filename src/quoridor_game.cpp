@@ -1,4 +1,5 @@
 #include "quoridor_game.h"
+#include <iostream>
 
 QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 
@@ -24,8 +25,7 @@ void QuoridorGame::initialize_board() {
 }
 
 void QuoridorGame::initialize_game() {
-    players[1]->position = {4, 0};
-    players[0]->position = {4, 8};
+    initialize_players();
 
     initialize_board();
 
@@ -51,6 +51,16 @@ void QuoridorGame::handle_move(Move move) {
 // TODO: implement move IMPORTANT
 void QuoridorGame::apply_move(Move move) {
     // apply move
+}
+// TODO: figure out how to initialize names (gotta ask the players befor)
+void QuoridorGame::initialize_players() {
+    players[0]->set_position({8, 4});
+    players[0]->set_color("red");
+    players[0]->set_id("1");
+
+    players[1]->set_position({0, 4});
+    players[1]->set_color("blue");
+    players[1]->set_id("2");
 }
 
 void QuoridorGame::notify_all_players(Message message) {

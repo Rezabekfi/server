@@ -17,7 +17,9 @@ enum class MessageType {
     ERROR,
     WRONG_MESSAGE,
     ACK,
-    NEXT_TURN
+    NEXT_TURN,
+    NAME_REQUEST,
+    NAME_RESPONSE
 };
 
 class Message {
@@ -49,7 +51,7 @@ public:
     static Message create_game_ended(QuoridorGame* game);
     static Message create_error(const std::string& message);
     static Message create_next_turn(QuoridorGame* game);
-    
+    static Message create_name_request();
     // Type conversion helpers
     static std::string message_type_to_string(MessageType type);
     static MessageType string_to_message_type(const std::string& typeStr);

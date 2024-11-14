@@ -17,6 +17,9 @@ private:
     bool handle_game_message(QuoridorGame* game, Player* player, const char* message);
     bool validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message);
 
+    // TODO: implement this
+    void handle_player_disconnection(QuoridorGame* game, Player* player);
+
 public:
     QuoridorServer();
     void start(int port);

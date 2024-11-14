@@ -85,10 +85,10 @@ Message Message::create_waiting() {
     return msg;
 }
 
+// TODO: this might be a useless and replaced by create_next_turn
 Message Message::create_game_started(QuoridorGame* game) {
-    Message msg;
+    Message msg = create_next_turn(game);
     msg.set_type(MessageType::GAME_STARTED);
-    msg.set_data("lobby_id", game->get_lobby_id());
     return msg;
 }
 
@@ -132,6 +132,12 @@ void Message::add_player(Player* player) {
     });
 }
 
+Message Message::create_name_request() {
+    Message msg;
+    msg.set_type(MessageType::NAME_REQUEST);
+    return msg;
+}
+
 std::string Message::message_type_to_string(MessageType type) {
     switch (type) {
         case MessageType::WELCOME: return "welcome";
@@ -143,6 +149,8 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::MOVE: return "move";
         case MessageType::ACK: return "ack";
         case MessageType::NEXT_TURN: return "next_turn";
+        case MessageType::NAME_REQUEST: return "name_request";
+        case MessageType::NAME_RESPONSE: return "name_response";
         default: return "unknown";
     }
 }
@@ -156,6 +164,8 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "ack") return MessageType::ACK;
     if (typeStr == "error") return MessageType::ERROR;
     if (typeStr == "next_turn") return MessageType::NEXT_TURN;
+    if (typeStr == "name_request") return MessageType::NAME_REQUEST;
+    if (typeStr == "name_response") return MessageType::NAME_RESPONSE;
     return MessageType::WRONG_MESSAGE;
 }
 
