@@ -56,9 +56,9 @@ std::optional<std::string> Message::get_data(const std::string& key) const {
     return std::nullopt;
 }
 
-std::optional<nlohmann::ordered_json> Message::get_data_object(const std::string& key) const {
-    if (message["data"].contains(key)) {
-        return message["data"][key];
+std::optional<nlohmann::ordered_json> Message::get_data_object() const {
+    if (message.contains("data")) {
+        return message["data"];
     }
     return std::nullopt;
 }

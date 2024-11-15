@@ -4,7 +4,7 @@ Move::Move(bool is_horizontal, std::vector<std::pair<int, int>> position) : is_h
 
 Move::Move(Message message) {
     try {
-        nlohmann::json data = message.get_data_object("data").value();
+        nlohmann::json data = message.get_data_object().value();
         if (!data.contains("is_horizontal") || !data.contains("position")) {
             is_valid_structure = false;
             return;

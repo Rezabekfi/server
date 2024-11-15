@@ -79,7 +79,6 @@ void QuoridorServer::handle_client(int client_socket) {
         }
     }
 
-    QuoridorGame* game = nullptr;
 
     // Handle matchmaking
     {
@@ -92,12 +91,14 @@ void QuoridorServer::handle_client(int client_socket) {
             Player* opponent = waiting_players.back();
             waiting_players.pop_back();
 
-            game = new QuoridorGame();
+            QuoridorGame* game = new QuoridorGame();
             
             int game_id = ++game_id_counter;
             active_games[game_id] = game;
 
             game->set_lobby_id(game_id);
+            player->set_game_id(game_id);
+            opponent->set_game_id(game_id);
             game->add_player(opponent);
             game->add_player(player);
         }
@@ -109,7 +110,14 @@ void QuoridorServer::handle_client(int client_socket) {
         if (bytes_read <= 0) break;
 
         buffer[bytes_read] = '\0';
-        if (!handle_game_message(game, player, buffer)) {
+
+        
+        if (active_games.find(player->get_game_id()) == active_games.end()) {
+            std::cout << "Player is not in a game" << std::endl;
+            break;
+        }
+
+        if (!handle_game_message(active_games[player->get_game_id()], player, buffer)) {
             // handle disconecting client
             break;
         }

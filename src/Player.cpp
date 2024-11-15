@@ -46,3 +46,11 @@ void Player::set_goal_row(int goal_row) {
 int Player::get_goal_row() const {
     return this->goal_row;
 }
+
+int Player::get_game_id() const {
+    return this->game_id;
+}
+
+void Player::set_game_id(int game_id) {
+    this->game_id = game_id;
+}

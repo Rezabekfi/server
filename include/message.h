@@ -39,7 +39,7 @@ public:
     
     MessageType get_type() const;
     std::optional<std::string> get_data(const std::string& key) const;
-    std::optional<nlohmann::ordered_json> get_data_object(const std::string& key) const;
+    std::optional<nlohmann::ordered_json> get_data_object() const;
     
     std::string to_json() const;
     bool validate() const;
