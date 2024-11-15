@@ -164,6 +164,7 @@ bool QuoridorGame::check_game_end() {
 
 bool QuoridorGame::can_move(Move move) {
     if (!move.get_is_valid_structure()) return false;
+    if (move.get_player_id() != current_player) return false;
 
     if (move.is_player_move() && QuoridorGame::is_valid_player_move(move)) {
         return true;
