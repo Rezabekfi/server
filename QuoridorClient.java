@@ -58,8 +58,8 @@ public class QuoridorClient {
             return;
         }
         if (input.equals("move")) {
-            System.out.println("Sending move" + "{\"type\":\"move\",\"data\":{\"is_horizontal\":false,\"position\":[[3,8]]}}");
-            out.println("{\"type\":\"move\",\"data\":{\"is_horizontal\":false,\"position\":[[8,3]]}}");
+            System.out.println("Sending move" + "{\"type\":\"move\",\"data\":{\"player_id\":0,\"is_horizontal\":false,\"position\":[[8,3]]}}");
+            out.println("{\"type\":\"move\",\"data\":{\"player_id\":1,\"is_horizontal\":false,\"position\":[[8,3]]}}");
             return;
         }
 

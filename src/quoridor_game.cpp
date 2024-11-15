@@ -36,6 +36,10 @@ void QuoridorGame::initialize_game() {
 
 
 void QuoridorGame::handle_move(Move move) {
+    if (move.get_player_id() != current_player) {
+        players[move.get_player_id()]->send_message(Message::create_error("Not your turn"));
+        return;
+    }
     if (!can_move(move)) {
         players[current_player]->send_message(Message::create_error("Invalid move"));
         return;
@@ -164,7 +168,6 @@ bool QuoridorGame::check_game_end() {
 
 bool QuoridorGame::can_move(Move move) {
     if (!move.get_is_valid_structure()) return false;
-    if (move.get_player_id() != current_player) return false;
 
     if (move.is_player_move() && QuoridorGame::is_valid_player_move(move)) {
         return true;
