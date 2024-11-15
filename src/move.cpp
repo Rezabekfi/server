@@ -37,3 +37,7 @@ void Move::set_position(std::vector<std::pair<int, int>> position) {
 bool Move::is_player_move() const {
     return position.size() == 1;
 }
+
+bool Move::get_is_valid_structure() const {
+    return is_valid_structure;
+}

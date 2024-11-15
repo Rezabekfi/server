@@ -57,7 +57,10 @@ public class QuoridorClient {
             close();
             return;
         }
-
+        if (input.equals("move")) {
+            out.println("{\"type\":\"move\",\"data\":{\"is_horizontal\":false,\"position\":[1,1]}}");
+            return;
+        }
 
         // Create a move message
         String moveMessage = String.format("{\"type\":\"name_response\",\"data\":{\"name\":\"%s\"}}", input);

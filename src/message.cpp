@@ -92,10 +92,11 @@ Message Message::create_game_started(QuoridorGame* game) {
     return msg;
 }
 
-Message Message::create_game_ended(QuoridorGame* game) {
+Message Message::create_game_ended(QuoridorGame* game, Player* player) {
     Message msg;
     msg.set_type(MessageType::GAME_ENDED);
     msg.set_data("lobby_id", game->get_lobby_id());
+    msg.set_data("winner_id", player->id);
     return msg;
 }
 
@@ -112,6 +113,10 @@ Message Message::create_next_turn(QuoridorGame* game) {
     msg.set_data("lobby_id", game->get_lobby_id());
     msg.set_data("board", game->get_board_string());
     msg.set_data("current_player_id", game->get_players()[game->get_current_player()]->id);
+
+    // send walls
+    msg.set_data("horizontal_walls", game->get_horizontal_walls());
+    msg.set_data("vertical_walls", game->get_vertical_walls());
     
     // Add players using the new method
     msg.add_player(game->get_players()[0]);
@@ -127,8 +132,10 @@ void Message::add_player(Player* player) {
     
     message["data"]["players"].push_back({
         {"id", player->id},
+        {"position", player->position},
         {"name", player->name},
-        {"color", player->color}
+        {"color", player->color},
+        {"walls_left", player->get_walls_left()}
     });
 }
 

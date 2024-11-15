@@ -48,7 +48,7 @@ public:
     static Message create_welcome(const std::string& message);
     static Message create_waiting();
     static Message create_game_started(QuoridorGame* game);
-    static Message create_game_ended(QuoridorGame* game);
+    static Message create_game_ended(QuoridorGame* game, Player* player);
     static Message create_error(const std::string& message);
     static Message create_next_turn(QuoridorGame* game);
     static Message create_name_request();

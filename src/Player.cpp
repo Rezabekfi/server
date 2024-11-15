@@ -30,3 +30,19 @@ void Player::set_position(std::pair<int, int> position) {
 void Player::set_color(std::string color) {
     this->color = color;
 }
+
+void Player::set_walls_left(int walls_left) {
+    this->walls_left = walls_left;
+}
+
+int Player::get_walls_left() const {
+    return this->walls_left;
+}
+
+void Player::set_goal_row(int goal_row) {
+    this->goal_row = goal_row;
+}
+
+int Player::get_goal_row() const {
+    return this->goal_row;
+}

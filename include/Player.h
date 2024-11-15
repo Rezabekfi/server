@@ -8,8 +8,10 @@ public:
     int socket;
     std::string name;
     std::pair<int, int> position;
+    int walls_left;
     std::string color;
     std::string id;
+    int goal_row;
 
     explicit Player(int sock);
 
@@ -17,7 +19,12 @@ public:
     void set_name(std::string name);
     void set_position(std::pair<int, int> position);
     void set_color(std::string color);
+    void set_walls_left(int walls_left);
+    void set_goal_row(int goal_row);
 
+    int get_walls_left() const;
+    int get_goal_row() const;
+    
     void send_message(const std::string& message);
     void send_message(const Message& message);
 }; 

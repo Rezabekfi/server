@@ -26,7 +26,13 @@ private:
     void initialize_board();
     void apply_move(Move move);
     bool check_game_end();
-
+    bool is_valid_player_move(Move move);
+    bool is_valid_wall_move(Move move);
+    bool is_wall_between(int row1, int col1, int row2, int col2);
+    bool is_blocked(Move move);
+    bool bfs(Player* player);
+    void remove_move(Move move);
+    void apply_player_move(Move move);
 public:
     QuoridorGame();
     bool add_player(Player* player);
