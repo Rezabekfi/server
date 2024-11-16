@@ -33,6 +33,9 @@ private:
     bool bfs(Player* player);
     void remove_move(Move move);
     void apply_player_move(Move move);
+    void handle_player_disconnection(Player* player);
+    void check_player_connections();
+
 public:
     QuoridorGame();
     bool add_player(Player* player);
@@ -40,7 +43,6 @@ public:
     void notify_all_players(Message message);
     size_t get_lobby_id() const;
     void set_lobby_id(size_t lobby_id);
-    bool can_move(Message message);
     bool can_move(Move move);
 
     // dont forget to pass the next player turn
@@ -48,6 +50,7 @@ public:
 
     // Send board and current player turn
     void send_next_turn();
+    void handle_game_end();
 
     //getters and setters
     std::string get_board_string() const;
@@ -59,4 +62,5 @@ public:
     void set_vertical_walls(const std::vector<std::pair<int, int>>& vertical_walls);
     std::vector<Player*> get_players() const;
     void set_players(const std::vector<Player*>& players);
+    void start_heartbeat_checker();
 }; 

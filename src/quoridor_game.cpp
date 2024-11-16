@@ -1,5 +1,6 @@
 #include "quoridor_game.h"
 #include <iostream>
+#include <thread>
 
 QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 
@@ -26,12 +27,11 @@ void QuoridorGame::initialize_board() {
 
 void QuoridorGame::initialize_game() {
     initialize_players();
-
     initialize_board();
-
     state = GameState::IN_PROGRESS;
     notify_all_players(Message::create_game_started(this));
     send_next_turn();
+    start_heartbeat_checker();
 }
 
 
@@ -47,12 +47,21 @@ void QuoridorGame::handle_move(Move move) {
     // handle move
     apply_move(move);
     if (check_game_end()) {
-        // handle game end TODO
+        handle_game_end();
         return;
     }
     send_next_turn();
 }
-// TODO: implement move IMPORTANT
+
+void QuoridorGame::handle_game_end() {
+    state = GameState::ENDED;
+    notify_all_players(Message::create_game_ended(this, players[current_player]));
+    for (auto player : players) {
+        player->is_connected = false;
+        player->set_game_id(-1);
+    }
+}
+
 void QuoridorGame::apply_move(Move move) {
     if (move.is_player_move()) {
         apply_player_move(move);
@@ -156,10 +165,9 @@ void QuoridorGame::set_players(const std::vector<Player*>& players) {
 }
 
 bool QuoridorGame::check_game_end() {
+    if (state == GameState::ENDED) return true;
     for (auto player : players) {
         if (player->position.first == player->get_goal_row()) {
-            state = GameState::ENDED;
-            notify_all_players(Message::create_game_ended(this, players[current_player]));
             return true;
         }
     }
@@ -180,6 +188,9 @@ bool QuoridorGame::can_move(Move move) {
 bool QuoridorGame::is_valid_player_move(Move move) {
     std::pair<int, int> new_pos = move.get_position()[0];
     int curr_row = -1, curr_col = -1;
+
+    // check if move isnt out of bounds
+    if (new_pos.first < 0 || new_pos.first >= BOARD_SIZE || new_pos.second < 0 || new_pos.second >= BOARD_SIZE) return false;
     
     // Find current player position on board
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -323,4 +334,37 @@ void QuoridorGame::remove_move(Move move) {
         vertical_walls.erase(std::find(vertical_walls.begin(), vertical_walls.end(), move.get_position()[0]));
         vertical_walls.erase(std::find(vertical_walls.begin(), vertical_walls.end(), move.get_position()[1]));
     }
+}
+
+void QuoridorGame::handle_player_disconnection(Player* player) {
+    std::lock_guard<std::mutex> lock(game_mutex);
+    
+    // Notify remaining player about opponent disconnection
+    for (auto p : players) {
+        if (p != player && p->is_connected) {
+            p->send_message(Message::create_game_ended(this, p));
+        }
+    }
+    
+    // Set game state to ended
+    state = GameState::ENDED;
+}
+
+void QuoridorGame::check_player_connections() {
+    for (auto player : players) {
+        if (player->is_connected && !player->check_connection()) {
+            player->is_connected = false;
+            handle_player_disconnection(player);
+            return;
+        }
+    }
+}
+
+void QuoridorGame::start_heartbeat_checker() {
+    std::thread([this]() {
+        while (state == GameState::IN_PROGRESS) {
+            check_player_connections();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }).detach();
 }

@@ -3,6 +3,10 @@
 #include <iostream>
 #include "message.h"
 
+// Define static const members
+const int Player::HEARTBEAT_INTERVAL;
+const int Player::HEARTBEAT_TIMEOUT;
+
 Player::Player(int sock) : socket(sock) {}
 
 void Player::send_message(const std::string& message) {
@@ -53,4 +57,15 @@ int Player::get_game_id() const {
 
 void Player::set_game_id(int game_id) {
     this->game_id = game_id;
+}
+
+void Player::update_heartbeat() {
+    last_heartbeat = std::chrono::steady_clock::now();
+    is_connected = true;
+}
+
+bool Player::check_connection() {
+    auto now = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_heartbeat).count();
+    return duration < HEARTBEAT_TIMEOUT;
 }

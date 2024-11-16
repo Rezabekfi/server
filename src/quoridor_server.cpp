@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <netinet/tcp.h>
 #include "message.h"
+#include "move.h"
+#include "quoridor_game.h"
+#include "player.h"
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -51,6 +54,7 @@ void QuoridorServer::start(int port) {
 
 void QuoridorServer::handle_client(int client_socket) {
     Player* player = new Player(client_socket);
+    player->update_heartbeat();
 
     // Send welcome message and request name
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
@@ -104,14 +108,59 @@ void QuoridorServer::handle_client(int client_socket) {
         }
     }
 
+    // Start heartbeat sender
+    std::thread([player]() {
+        while (player->is_connected) {
+            player->send_message(Message::create_heartbeat());
+            std::this_thread::sleep_for(std::chrono::seconds(Player::HEARTBEAT_INTERVAL));
+        }
+    }).detach();
+
+    // After creating the socket, set receive timeout
+    struct timeval tv;
+    tv.tv_sec = 1;  // 1 second timeout
+    tv.tv_usec = 0;
+    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        std::cerr << "Failed to set socket timeout" << std::endl;
+    }
+
     // Main client loop
     while (true) {
+        if (!player->is_connected || !player->check_connection()) {
+            std::cout << "Client disconnected (connection check)" << std::endl;
+            break;
+        }
+
+        char buffer[1024];
         int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-        if (bytes_read <= 0) break;
+        
+        if (bytes_read < 0) {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                // Timeout occurred, continue the loop
+                continue;
+            } else {
+                // Actual error occurred
+                std::cout << "Socket error: " << strerror(errno) << std::endl;
+                player->is_connected = false;
+                break;
+            }
+        } else if (bytes_read == 0) {
+            // Connection closed by client
+            std::cout << "Client disconnected (connection closed)" << std::endl;
+            player->is_connected = false;
+            break;
+        }
 
         buffer[bytes_read] = '\0';
-
+        Message msg(buffer);
         
+        // Update heartbeat on any message received
+        player->update_heartbeat();
+
+        if (msg.get_type() == MessageType::HEARTBEAT) {
+            continue; // Skip processing heartbeat messages
+        }
+
         if (active_games.find(player->get_game_id()) == active_games.end()) {
             std::cout << "Player is not in a game" << std::endl;
             break;
@@ -124,6 +173,7 @@ void QuoridorServer::handle_client(int client_socket) {
     }
 
     // Cleanup
+    std::cout << "Client disconnected" << std::endl;
     close(client_socket);
     delete player;
 }

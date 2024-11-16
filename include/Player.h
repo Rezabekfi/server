@@ -2,6 +2,7 @@
 #include <string>
 #include <utility>
 #include "message.h"
+#include <chrono>
 
 class Player {
 public:
@@ -13,6 +14,10 @@ public:
     std::string id;
     int game_id;
     int goal_row;
+    std::chrono::steady_clock::time_point last_heartbeat;
+    bool is_connected;
+    static const int HEARTBEAT_INTERVAL = 5; // seconds
+    static const int HEARTBEAT_TIMEOUT = 15; // seconds
 
     explicit Player(int sock);
 
@@ -28,4 +33,6 @@ public:
     int get_game_id() const;
     void send_message(const std::string& message);
     void send_message(const Message& message);
+    void update_heartbeat();
+    bool check_connection();
 }; 

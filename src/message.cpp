@@ -145,6 +145,12 @@ Message Message::create_name_request() {
     return msg;
 }
 
+Message Message::create_heartbeat() {
+    Message msg;
+    msg.set_type(MessageType::HEARTBEAT);
+    return msg;
+}
+
 std::string Message::message_type_to_string(MessageType type) {
     switch (type) {
         case MessageType::WELCOME: return "welcome";
@@ -158,6 +164,7 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::NEXT_TURN: return "next_turn";
         case MessageType::NAME_REQUEST: return "name_request";
         case MessageType::NAME_RESPONSE: return "name_response";
+        case MessageType::HEARTBEAT: return "heartbeat";
         default: return "unknown";
     }
 }
@@ -173,6 +180,7 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "next_turn") return MessageType::NEXT_TURN;
     if (typeStr == "name_request") return MessageType::NAME_REQUEST;
     if (typeStr == "name_response") return MessageType::NAME_RESPONSE;
+    if (typeStr == "heartbeat") return MessageType::HEARTBEAT;
     return MessageType::WRONG_MESSAGE;
 }
 
