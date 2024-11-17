@@ -73,20 +73,38 @@ void QuoridorGame::apply_move(Move move) {
             vertical_walls.push_back(move.get_position()[0]);
             vertical_walls.push_back(move.get_position()[1]);
         }
+        players[current_player]->walls_left--;
     }
     current_player = (current_player + 1) % 2;
 }
 
 void QuoridorGame::apply_player_move(Move move) {
-    char targeted_square = board[players[current_player]->position.first][players[current_player]->position.second];
-    if (targeted_square == PLAYER_1_CELL || targeted_square == PLAYER_2_CELL) {
-        std::pair<int, int> new_pos = std::make_pair((targeted_square == PLAYER_1_CELL) ? BOARD_SIZE - 1 : 0, BOARD_SIZE / 2);
-        if (move.get_position()[0] == new_pos) new_pos.second++;
-        players[targeted_square - '0' - 1]->set_position(new_pos);
-    } 
-    board[players[current_player]->position.first][players[current_player]->position.second] = EMPTY_CELL;
-    players[current_player]->set_position(move.get_position()[0]);
-    board[players[current_player]->position.first][players[current_player]->position.second] = PLAYER_1_CELL + current_player;
+    // Get current player position
+    int curr_row = players[current_player]->position.first;
+    int curr_col = players[current_player]->position.second;
+    
+    // Get target position
+    std::pair<int, int> new_pos = move.get_position()[0];
+    
+    // Check if target square has another player
+    char target_square = board[new_pos.first][new_pos.second];
+    if (target_square == PLAYER_1_CELL || target_square == PLAYER_2_CELL) {
+        // Move the other player to their starting position
+        std::pair<int, int> reset_pos = std::make_pair(
+            (target_square == PLAYER_1_CELL) ? BOARD_SIZE - 1 : 0, 
+            BOARD_SIZE / 2
+        );
+        if (new_pos == reset_pos) reset_pos.second++;
+        players[target_square - '0' - 1]->set_position(reset_pos);
+        board[reset_pos.first][reset_pos.second] = target_square;
+    }
+    
+    // Clear current position
+    board[curr_row][curr_col] = EMPTY_CELL;
+    
+    // Move player to new position
+    players[current_player]->set_position(new_pos);
+    board[new_pos.first][new_pos.second] = PLAYER_1_CELL + current_player;
 }
 
 // TODO: figure out how to initialize names (gotta ask the players befor)
@@ -216,12 +234,24 @@ bool QuoridorGame::is_valid_player_move(Move move) {
     return false;
 }
 
+// bug here in situation where wall is under the player player cannot move to his right 
+// if player is on 0, 0 and wall is under him (meaning wall is 00 and 01 but horizontal) he cannot move to 0, 1
 bool QuoridorGame::is_wall_between(int row1, int col1, int row2, int col2) {
-    return (row1 == row2 && std::find(horizontal_walls.begin(), horizontal_walls.end(), 
-                std::make_pair(row1, std::min(col1, col2))) != horizontal_walls.end()) // horizontal wall 
-                ||
-           (col1 == col2 && std::find(vertical_walls.begin(), vertical_walls.end(),
-                std::make_pair(std::min(row1, row2), col1)) != vertical_walls.end()); // vertical wall
+    // horizontal movement
+    bool vertical_blocked = false;
+    if (row1 == row2) {
+        int wall_row = row1;
+        int wall_col = std::min(col1, col2);
+        vertical_blocked = std::find(vertical_walls.begin(), vertical_walls.end(), std::make_pair(wall_row, wall_col)) != vertical_walls.end();
+    }
+    // vertical movement
+    bool horizontal_blocked = false;
+    if (col1 == col2) {
+        int wall_col = col1;
+        int wall_row = std::min(row1, row2);
+        horizontal_blocked = std::find(horizontal_walls.begin(), horizontal_walls.end(), std::make_pair(wall_row, wall_col)) != horizontal_walls.end();
+    }
+    return vertical_blocked || horizontal_blocked;
 }
 
 bool QuoridorGame::is_valid_wall_move(Move move) {
@@ -255,15 +285,21 @@ bool QuoridorGame::is_valid_wall_move(Move move) {
 }
 
 bool QuoridorGame::is_blocked(Move move) {
+    // Save current player
+    int saved_player = current_player;
+    
     apply_move(move);
     for (auto player : players) {
-        // start bfs to goal row
         if(!QuoridorGame::bfs(player)) {
             remove_move(move);
+            // Restore current player
+            current_player = saved_player;
             return true;
         }
     }
     remove_move(move);
+    // Restore current player
+    current_player = saved_player;
     return false;
 }
 

@@ -73,7 +73,6 @@ void QuoridorServer::handle_client(int client_socket) {
         buffer[bytes_read] = '\0';
         
         Message msg(buffer);
-        std::cout << "Received message: " << msg.to_json() << std::endl;
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
             player->set_name(msg.get_data("name").value());
             name_received = true;
@@ -154,10 +153,11 @@ void QuoridorServer::handle_client(int client_socket) {
         buffer[bytes_read] = '\0';
         Message msg(buffer);
         
+        std::cout << "Received message: " << msg.to_json() << std::endl;
         // Update heartbeat on any message received
         player->update_heartbeat();
 
-        if (msg.get_type() == MessageType::HEARTBEAT) {
+        if (msg.get_type() == MessageType::HEARTBEAT || msg.get_type() == MessageType::ACK) {
             continue; // Skip processing heartbeat messages
         }
 
