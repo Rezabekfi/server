@@ -398,6 +398,7 @@ void QuoridorGame::check_player_connections() {
             player->is_connected = true;
             player->is_reconnecting = false;
             notify_all_players(Message::create_player_reconnected(player));
+            player->send_message(Message::create_next_turn(this));
             continue;
         }
 
