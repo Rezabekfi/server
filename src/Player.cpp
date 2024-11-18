@@ -5,9 +5,10 @@
 
 // Define static const members
 const int Player::HEARTBEAT_INTERVAL;
-const int Player::HEARTBEAT_TIMEOUT;
+const int Player::NORMAL_HEARTBEAT_TIMEOUT;
+const int Player::RECONNECTION_HEARTBEAT_TIMEOUT;
 
-Player::Player(int sock) : socket(sock) {}
+Player::Player(int sock) : socket(sock), is_reconnecting(false) {}
 
 void Player::send_message(const std::string& message) {
     std::cout << "Sending message: " << message << std::endl;
@@ -66,6 +67,15 @@ void Player::update_heartbeat() {
 
 bool Player::check_connection() {
     auto now = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_heartbeat).count();
-    return duration < HEARTBEAT_TIMEOUT;
+    auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+        now - last_heartbeat).count();
+    return duration < NORMAL_HEARTBEAT_TIMEOUT;
+}
+
+void Player::set_board_char(char board_char) {
+    this->board_char = board_char;
+}
+
+char Player::get_board_char() const {
+    return this->board_char;
 }

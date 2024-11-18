@@ -16,8 +16,11 @@ public:
     int goal_row;
     std::chrono::steady_clock::time_point last_heartbeat;
     bool is_connected;
+    bool is_reconnecting;
+    char board_char;
     static const int HEARTBEAT_INTERVAL = 5; // seconds
-    static const int HEARTBEAT_TIMEOUT = 15; // seconds
+    static const int NORMAL_HEARTBEAT_TIMEOUT = 15; // seconds
+    static const int RECONNECTION_HEARTBEAT_TIMEOUT = 120; // 2 minutes to reconnect
 
     explicit Player(int sock);
 
@@ -35,4 +38,6 @@ public:
     void send_message(const Message& message);
     void update_heartbeat();
     bool check_connection();
+    void set_board_char(char board_char);
+    char get_board_char() const;
 }; 

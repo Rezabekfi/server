@@ -134,7 +134,7 @@ void Message::add_player(Player* player) {
         {"id", player->id},
         {"position", player->position},
         {"name", player->name},
-        {"color", player->color},
+        {"board_char", std::string(1, player->get_board_char())},
         {"walls_left", player->get_walls_left()}
     });
 }
@@ -148,6 +148,13 @@ Message Message::create_name_request() {
 Message Message::create_heartbeat() {
     Message msg;
     msg.set_type(MessageType::HEARTBEAT);
+    return msg;
+}
+
+Message Message::create_player_disconnected(Player* player) {
+    Message msg;
+    msg.set_type(MessageType::PLAYER_DISCONNECTED);
+    msg.set_data("player_id", player->id);
     return msg;
 }
 
@@ -165,6 +172,7 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::NAME_REQUEST: return "name_request";
         case MessageType::NAME_RESPONSE: return "name_response";
         case MessageType::HEARTBEAT: return "heartbeat";
+        case MessageType::PLAYER_DISCONNECTED: return "player_disconnected";
         default: return "unknown";
     }
 }
@@ -181,6 +189,7 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "name_request") return MessageType::NAME_REQUEST;
     if (typeStr == "name_response") return MessageType::NAME_RESPONSE;
     if (typeStr == "heartbeat") return MessageType::HEARTBEAT;
+    if (typeStr == "player_disconnected") return MessageType::PLAYER_DISCONNECTED;
     return MessageType::WRONG_MESSAGE;
 }
 

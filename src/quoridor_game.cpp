@@ -112,12 +112,14 @@ void QuoridorGame::initialize_players() {
     players[0]->set_position({BOARD_SIZE - 1, BOARD_SIZE / 2});
     players[0]->set_color("red");
     players[0]->set_id("1");
+    players[0]->set_board_char(PLAYER_1_CELL);
     players[0]->set_goal_row(0);
     players[0]->set_walls_left(10);
 
     players[1]->set_position({0, BOARD_SIZE / 2});
     players[1]->set_color("blue");
     players[1]->set_id("2");
+    players[1]->set_board_char(PLAYER_2_CELL);
     players[1]->set_goal_row(BOARD_SIZE - 1);
     players[1]->set_walls_left(10);
 }
@@ -291,15 +293,13 @@ bool QuoridorGame::is_blocked(Move move) {
     apply_move(move);
     for (auto player : players) {
         if(!QuoridorGame::bfs(player)) {
-            remove_move(move);
-            // Restore current player
             current_player = saved_player;
+            remove_move(move);
             return true;
         }
     }
-    remove_move(move);
-    // Restore current player
     current_player = saved_player;
+    remove_move(move);
     return false;
 }
 
@@ -370,12 +370,14 @@ void QuoridorGame::remove_move(Move move) {
         vertical_walls.erase(std::find(vertical_walls.begin(), vertical_walls.end(), move.get_position()[0]));
         vertical_walls.erase(std::find(vertical_walls.begin(), vertical_walls.end(), move.get_position()[1]));
     }
+    
+    players[current_player]->walls_left++;
 }
 
 void QuoridorGame::handle_player_disconnection(Player* player) {
     std::lock_guard<std::mutex> lock(game_mutex);
     
-    // Notify remaining player about opponent disconnection
+    // Notify remaining player about opponent permanent disconnection
     for (auto p : players) {
         if (p != player && p->is_connected) {
             p->send_message(Message::create_game_ended(this, p));
@@ -388,7 +390,23 @@ void QuoridorGame::handle_player_disconnection(Player* player) {
 
 void QuoridorGame::check_player_connections() {
     for (auto player : players) {
-        if (player->is_connected && !player->check_connection()) {
+        auto now = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+            now - player->last_heartbeat).count();
+        
+        if (player->is_connected && duration >= Player::NORMAL_HEARTBEAT_TIMEOUT && !player->is_reconnecting) {
+            player->is_reconnecting = true;
+            // Notify other players about temporary disconnection
+            for (auto p : players) {
+                if (p != player && p->is_connected) {
+                    p->send_message(Message::create_player_disconnected(player));
+                }
+            }
+        }
+        
+        // Check for permanent disconnection
+        if (player->is_reconnecting && 
+            duration >= Player::RECONNECTION_HEARTBEAT_TIMEOUT) {
             player->is_connected = false;
             handle_player_disconnection(player);
             return;
