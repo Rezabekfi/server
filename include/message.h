@@ -21,7 +21,8 @@ enum class MessageType {
     NAME_REQUEST,
     NAME_RESPONSE,
     HEARTBEAT,
-    PLAYER_DISCONNECTED
+    PLAYER_DISCONNECTED,
+    PLAYER_RECONNECTED
 };
 
 class Message {
@@ -56,6 +57,7 @@ public:
     static Message create_name_request();
     static Message create_heartbeat();
     static Message create_player_disconnected(Player* player);
+    static Message create_player_reconnected(Player* player);
     // Type conversion helpers
     static std::string message_type_to_string(MessageType type);
     static MessageType string_to_message_type(const std::string& typeStr);

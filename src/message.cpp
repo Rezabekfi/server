@@ -158,6 +158,13 @@ Message Message::create_player_disconnected(Player* player) {
     return msg;
 }
 
+Message Message::create_player_reconnected(Player* player) {
+    Message msg;
+    msg.set_type(MessageType::PLAYER_RECONNECTED);
+    msg.set_data("reconnected_player_id", player->id);
+    return msg;
+}
+
 std::string Message::message_type_to_string(MessageType type) {
     switch (type) {
         case MessageType::WELCOME: return "welcome";
@@ -173,6 +180,7 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::NAME_RESPONSE: return "name_response";
         case MessageType::HEARTBEAT: return "heartbeat";
         case MessageType::PLAYER_DISCONNECTED: return "player_disconnected";
+        case MessageType::PLAYER_RECONNECTED: return "player_reconnected";
         default: return "unknown";
     }
 }
@@ -190,6 +198,7 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "name_response") return MessageType::NAME_RESPONSE;
     if (typeStr == "heartbeat") return MessageType::HEARTBEAT;
     if (typeStr == "player_disconnected") return MessageType::PLAYER_DISCONNECTED;
+    if (typeStr == "player_reconnected") return MessageType::PLAYER_RECONNECTED;
     return MessageType::WRONG_MESSAGE;
 }
 
