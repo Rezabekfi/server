@@ -154,7 +154,7 @@ Message Message::create_heartbeat() {
 Message Message::create_player_disconnected(Player* player) {
     Message msg;
     msg.set_type(MessageType::PLAYER_DISCONNECTED);
-    msg.set_data("player_id", player->id);
+    msg.set_data("disconnected_player_id", player->id);
     return msg;
 }
 
