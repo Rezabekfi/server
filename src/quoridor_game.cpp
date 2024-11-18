@@ -394,6 +394,13 @@ void QuoridorGame::check_player_connections() {
         auto duration = std::chrono::duration_cast<std::chrono::seconds>(
             now - player->last_heartbeat).count();
         
+        if (player->is_reconnecting && player->check_connection()) {
+            player->is_connected = true;
+            player->is_reconnecting = false;
+            notify_all_players(Message::create_player_reconnected(player));
+            continue;
+        }
+
         if (player->is_connected && duration >= Player::NORMAL_HEARTBEAT_TIMEOUT && !player->is_reconnecting) {
             player->is_reconnecting = true;
             // Notify other players about temporary disconnection
