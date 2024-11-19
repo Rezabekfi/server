@@ -33,7 +33,6 @@ private:
     bool bfs(Player* player);
     void remove_move(Move move);
     void apply_player_move(Move move);
-    void handle_player_disconnection(Player* player);
     void check_player_connections();
 
 public:
@@ -41,6 +40,7 @@ public:
     bool add_player(Player* player);
     void initialize_game();
     void notify_all_players(Message message);
+    void handle_player_disconnection(Player* player);
     size_t get_lobby_id() const;
     void set_lobby_id(size_t lobby_id);
     bool can_move(Move move);

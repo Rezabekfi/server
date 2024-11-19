@@ -17,8 +17,19 @@ private:
     bool handle_game_message(QuoridorGame* game, Player* player, const char* message);
     bool validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message);
 
-    // TODO: implement this
     void handle_player_disconnection(QuoridorGame* game, Player* player);
+
+    Player* initialize_player(int client_socket);
+    bool handle_player_name_setup(Player* player);
+    bool handle_matchmaking(Player* player);
+    QuoridorGame* create_game(Player* player1, Player* player2);
+    void start_heartbeat_thread(Player* player);
+    void setup_socket_timeout(int client_socket);
+    void main_client_loop(Player* player);
+    bool handle_client_message(Player* player);
+    bool handle_receive_error(Player* player);
+    void handle_disconnection(Player* player);
+    void cleanup_player(Player* player);
 
 public:
     QuoridorServer();

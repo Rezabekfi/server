@@ -53,128 +53,155 @@ void QuoridorServer::start(int port) {
 }
 
 void QuoridorServer::handle_client(int client_socket) {
-    Player* player = new Player(client_socket);
-    player->update_heartbeat();
+    Player* player = initialize_player(client_socket);
+    if (!player) return;
 
-    // Send welcome message and request name
+    if (!handle_player_name_setup(player)) {
+        cleanup_player(player);
+        return;
+    }
+
+    if (!handle_matchmaking(player)) {
+        cleanup_player(player);
+        return;
+    }
+
+    start_heartbeat_thread(player);
+    setup_socket_timeout(client_socket);
+
+    main_client_loop(player);
+    cleanup_player(player);
+}
+
+Player* QuoridorServer::initialize_player(int client_socket) {
+    Player* player = new Player(client_socket);
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
     player->send_message(Message::create_name_request());
+    return player;
+}
 
-    // Wait for name response
+bool QuoridorServer::handle_player_name_setup(Player* player) {
     char buffer[1024];
-    bool name_received = false;
-    while (!name_received) {
-        int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-        if (bytes_read <= 0) {
-            close(client_socket);
-            delete player;
-            return;
-        }
-        buffer[bytes_read] = '\0';
+    while (true) {
+        int bytes_read = recv(player->socket, buffer, sizeof(buffer), 0);
+        if (bytes_read <= 0) return false;
         
+        buffer[bytes_read] = '\0';
         Message msg(buffer);
+        
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
             player->set_name(msg.get_data("name").value());
-            name_received = true;
-        } else {
-            player->send_message(Message::create_error("Please provide your name first"));
-            player->send_message(Message::create_name_request());
+            return true;
         }
+        
+        player->send_message(Message::create_error("Please provide your name first"));
+        player->send_message(Message::create_name_request());
+    }
+}
+
+bool QuoridorServer::handle_matchmaking(Player* player) {
+    std::lock_guard<std::mutex> lock(server_mutex);
+    
+    if (waiting_players.empty()) {
+        waiting_players.push_back(player);
+        player->send_message(Message::create_waiting());
+        return true;
     }
 
+    Player* opponent = waiting_players.back();
+    waiting_players.pop_back();
 
-    // Handle matchmaking
-    {
-        std::lock_guard<std::mutex> lock(server_mutex);
-        if (waiting_players.empty()) {
-            std::cout << "No opponent found, adding player to waiting list" << std::endl;
-            waiting_players.push_back(player);
-            player->send_message(Message::create_waiting());
-        } else {
-            Player* opponent = waiting_players.back();
-            waiting_players.pop_back();
+    QuoridorGame* game = create_game(player, opponent);
+    return game != nullptr;
+}
 
-            QuoridorGame* game = new QuoridorGame();
-            
-            int game_id = ++game_id_counter;
-            active_games[game_id] = game;
+QuoridorGame* QuoridorServer::create_game(Player* player1, Player* player2) {
+    QuoridorGame* game = new QuoridorGame();
+    int game_id = ++game_id_counter;
+    
+    active_games[game_id] = game;
+    game->set_lobby_id(game_id);
+    
+    player1->set_game_id(game_id);
+    player2->set_game_id(game_id);
+    
+    game->add_player(player1);
+    game->add_player(player2);
+    
+    return game;
+}
 
-            game->set_lobby_id(game_id);
-            player->set_game_id(game_id);
-            opponent->set_game_id(game_id);
-            game->add_player(opponent);
-            game->add_player(player);
-        }
-    }
-
-    // Start heartbeat sender
+void QuoridorServer::start_heartbeat_thread(Player* player) {
     std::thread([player]() {
         while (player->is_connected) {
             player->send_message(Message::create_heartbeat());
             std::this_thread::sleep_for(std::chrono::seconds(Player::HEARTBEAT_INTERVAL));
         }
     }).detach();
+}
 
-    // After creating the socket, set receive timeout
-    struct timeval tv;
-    tv.tv_sec = 1;  // 1 second timeout
-    tv.tv_usec = 0;
+void QuoridorServer::setup_socket_timeout(int client_socket) {
+    struct timeval tv{1, 0};  // 1 second timeout
     if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
         std::cerr << "Failed to set socket timeout" << std::endl;
     }
+}
 
-    // Main client loop
-    while (true) {
-        if (!player->is_connected || !player->check_connection()) {
-            std::cout << "Client disconnected (connection check)" << std::endl;
-            break;
-        }
-
-        char buffer[1024];
-        int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-        
-        if (bytes_read < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                // Timeout occurred, continue the loop
-                continue;
-            } else {
-                // Actual error occurred
-                std::cout << "Socket error: " << strerror(errno) << std::endl;
-                player->is_connected = false;
-                break;
-            }
-        } else if (bytes_read == 0) {
-            // Connection closed by client
-            std::cout << "Client disconnected (connection closed)" << std::endl;
-            player->is_connected = false;
-            break;
-        }
-
-        buffer[bytes_read] = '\0';
-        Message msg(buffer);
-        
-        std::cout << "Received message: " << msg.to_json() << std::endl;
-        // Update heartbeat on any message received
-        player->update_heartbeat();
-
-        if (msg.get_type() == MessageType::HEARTBEAT || msg.get_type() == MessageType::ACK) {
-            continue; // Skip processing heartbeat messages
-        }
-
-        if (active_games.find(player->get_game_id()) == active_games.end()) {
-            std::cout << "Player is not in a game" << std::endl;
-            break;
-        }
-
-        if (!handle_game_message(active_games[player->get_game_id()], player, buffer)) {
-            // handle disconecting client
+void QuoridorServer::main_client_loop(Player* player) {
+    while (player->is_connected) {
+        if (!handle_client_message(player)) {
+            handle_disconnection(player);
             break;
         }
     }
+}
 
-    // Cleanup
+bool QuoridorServer::handle_client_message(Player* player) {
+    char buffer[1024];
+    int bytes_read = recv(player->socket, buffer, sizeof(buffer), 0);
+    
+    if (bytes_read < 0) {
+        return handle_receive_error(player);
+    }
+    
+    buffer[bytes_read] = '\0';
+    Message msg(buffer);
+    std::cout << "Received message: " << msg.to_json() << std::endl;
+    
+    player->update_heartbeat();
+    
+    if (msg.get_type() == MessageType::HEARTBEAT || msg.get_type() == MessageType::ACK) {
+        return true;
+    }
+    
+    auto game_it = active_games.find(player->get_game_id());
+    if (game_it == active_games.end()) {
+        return false;
+    }
+    
+    return handle_game_message(game_it->second, player, buffer);
+}
+
+bool QuoridorServer::handle_receive_error(Player* player) {
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+        return true;  // Timeout occurred, continue the loop
+    }
+    
+    std::cout << "Socket error: " << strerror(errno) << std::endl;
+    return false;
+}
+
+void QuoridorServer::handle_disconnection(Player* player) {
+    auto game_it = active_games.find(player->get_game_id());
+    if (game_it != active_games.end()) {
+        player->is_connected = false;
+        game_it->second->handle_player_disconnection(player);
+    }
+}
+
+void QuoridorServer::cleanup_player(Player* player) {
     std::cout << "Client disconnected" << std::endl;
-    close(client_socket);
+    close(player->socket);
     delete player;
 }
 
@@ -183,24 +210,20 @@ bool QuoridorServer::validate_client_message(QuoridorGame* game, Player* player,
         player->send_message(Message::create_error("Game not found"));
         return false;
     }
-
     message = Message(message_string);
     if (!message.validate()) {
         player->send_message(Message::create_error("Invalid message"));
         return false;
     }
-
     if (message.get_type() == MessageType::ACK) {
         std::cout << "ACK received" << std::endl;
         return true;
     }
-
     Move move(message);
     if (!move.is_valid_structure) {
         player->send_message(Message::create_error("Invalid move structure"));
         return false;
     }
-    
     return true;
 }
 
@@ -213,14 +236,12 @@ bool QuoridorServer::handle_game_message(QuoridorGame* game, Player* player, con
 
     Move move(message);
     game->handle_move(move);
-    // send message to all players -> notify about next turn or if game ended
     return true;
 }
 
 QuoridorServer::~QuoridorServer() {
     close(server_socket);
     
-    // Clean up any remaining players and games
     for (auto player : waiting_players) {
         close(player->socket);
         delete player;
