@@ -57,11 +57,13 @@ void QuoridorServer::handle_client(int client_socket) {
     if (!player) return;
 
     if (!handle_player_name_setup(player)) {
+        std::cout << "Player name setup failed for player " << player->name << std::endl;
         cleanup_player(player);
         return;
     }
 
     if (!handle_matchmaking(player)) {
+        std::cout << "Matchmaking failed for player " << player->name << std::endl;
         cleanup_player(player);
         return;
     }
@@ -70,11 +72,15 @@ void QuoridorServer::handle_client(int client_socket) {
     setup_socket_timeout(client_socket);
 
     main_client_loop(player);
+    std::cout << "Client loop ended for player " << player->name << std::endl;
     cleanup_player(player);
 }
 
 Player* QuoridorServer::initialize_player(int client_socket) {
     Player* player = new Player(client_socket);
+    player->is_connected = true;
+    player->is_reconnecting = false;
+    player->update_heartbeat();
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
     player->send_message(Message::create_name_request());
     return player;
@@ -91,7 +97,11 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
             player->set_name(msg.get_data("name").value());
+            player->update_heartbeat();
+            player->is_connected = true;
             return true;
+        } else if (msg.get_type() == MessageType::ACK) {
+            continue;
         }
         
         player->send_message(Message::create_error("Please provide your name first"));
@@ -111,7 +121,7 @@ bool QuoridorServer::handle_matchmaking(Player* player) {
     Player* opponent = waiting_players.back();
     waiting_players.pop_back();
 
-    QuoridorGame* game = create_game(player, opponent);
+    QuoridorGame* game = create_game(opponent, player);
     return game != nullptr;
 }
 
@@ -176,6 +186,7 @@ bool QuoridorServer::handle_client_message(Player* player) {
     
     auto game_it = active_games.find(player->get_game_id());
     if (game_it == active_games.end()) {
+        std::cout << "Game not found for player " << player->name << std::endl;
         return false;
     }
     

@@ -8,7 +8,7 @@ const int Player::HEARTBEAT_INTERVAL;
 const int Player::NORMAL_HEARTBEAT_TIMEOUT;
 const int Player::RECONNECTION_HEARTBEAT_TIMEOUT;
 
-Player::Player(int sock) : socket(sock), is_reconnecting(false) {}
+Player::Player(int sock) : socket(sock), is_reconnecting(false), is_connected(true) {}
 
 void Player::send_message(const std::string& message) {
     std::cout << "Sending message: " << message << std::endl;
