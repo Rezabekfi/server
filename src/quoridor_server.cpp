@@ -176,13 +176,13 @@ bool QuoridorServer::handle_client_message(Player* player) {
     
     buffer[bytes_read] = '\0';
     Message msg(buffer);
-    std::cout << "Received message: " << msg.to_json() << std::endl;
     
     player->update_heartbeat();
     
     if (msg.get_type() == MessageType::HEARTBEAT || msg.get_type() == MessageType::ACK) {
         return true;
     }
+    std::cout << "Received message: " << msg.to_json() << std::endl;
     
     auto game_it = active_games.find(player->get_game_id());
     if (game_it == active_games.end()) {
