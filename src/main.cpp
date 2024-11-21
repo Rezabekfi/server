@@ -1,5 +1,6 @@
 #include "quoridor_server.h"
 #include <iostream>
+#include <any>
 
 int main() {
     try {
