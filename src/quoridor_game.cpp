@@ -58,6 +58,7 @@ void QuoridorGame::handle_game_end() {
     notify_all_players(Message::create_game_ended(this, players[current_player]));
     for (auto player : players) {
         player->is_connected = false;
+        player->is_reconnecting = false;
         player->set_game_id(-1);
     }
 }
@@ -107,7 +108,6 @@ void QuoridorGame::apply_player_move(Move move) {
     board[new_pos.first][new_pos.second] = PLAYER_1_CELL + current_player;
 }
 
-// TODO: figure out how to initialize names (gotta ask the players befor)
 void QuoridorGame::initialize_players() {
     players[0]->set_position({BOARD_SIZE - 1, BOARD_SIZE / 2});
     players[0]->set_color("red");

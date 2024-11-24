@@ -58,12 +58,14 @@ void QuoridorServer::handle_client(int client_socket) {
 
     if (!handle_player_name_setup(player)) {
         std::cout << "Player name setup failed for player " << player->name << std::endl;
+        player->is_connected = false; // hard disconnect
         cleanup_player(player);
         return;
     }
 
     if (!handle_matchmaking(player)) {
         std::cout << "Matchmaking failed for player " << player->name << std::endl;
+        player->is_connected = false; // hard disconnect
         cleanup_player(player);
         return;
     }
@@ -73,7 +75,7 @@ void QuoridorServer::handle_client(int client_socket) {
 
     main_client_loop(player);
     std::cout << "Client loop ended for player " << player->name << std::endl;
-    cleanup_player(player);
+    cleanup_player(player); // hard disconect if client loop ended by error or something not allowed soft otherwise
 }
 
 Player* QuoridorServer::initialize_player(int client_socket) {
@@ -172,6 +174,8 @@ bool QuoridorServer::handle_client_message(Player* player) {
     
     if (bytes_read < 0) {
         return handle_receive_error(player);
+    } else if (bytes_read == 0) {
+        return false; // soft disconnect (usually because of client closed = closed connection = client has sent a 0 bytes message)
     }
     
     buffer[bytes_read] = '\0';
@@ -187,6 +191,7 @@ bool QuoridorServer::handle_client_message(Player* player) {
     auto game_it = active_games.find(player->get_game_id());
     if (game_it == active_games.end()) {
         std::cout << "Game not found for player " << player->name << std::endl;
+        player->is_connected = false;
         return false;
     }
     
@@ -199,13 +204,20 @@ bool QuoridorServer::handle_receive_error(Player* player) {
     }
     
     std::cout << "Socket error: " << strerror(errno) << std::endl;
+    // error so we wont try to reconnect (fuck this guy)
+    player->is_connected = false;
     return false;
 }
 
 void QuoridorServer::handle_disconnection(Player* player) {
     auto game_it = active_games.find(player->get_game_id());
-    if (game_it != active_games.end()) {
-        player->is_connected = false;
+
+    if (game_it == active_games.end()) {
+        player->is_connected = false; // hard disconnect not in game == (most likely left waiting for players or simillar situation)
+    }
+    // player is hard disconnected = because of errors or tried to send invalid messages (not allowed)
+    // if player is disconected because of network issues, we wont do anything, because checker inside game will handle it
+    if (game_it != active_games.end() && !player->is_connected) {
         game_it->second->handle_player_disconnection(player);
     }
 }
@@ -213,6 +225,19 @@ void QuoridorServer::handle_disconnection(Player* player) {
 void QuoridorServer::cleanup_player(Player* player) {
     std::cout << "Client disconnected" << std::endl;
     close(player->socket);
+    
+    // Remove from waiting queue if present
+    {
+        std::lock_guard<std::mutex> lock(server_mutex);
+        auto it = std::find(waiting_players.begin(), waiting_players.end(), player);
+        if (it != waiting_players.end()) {
+            waiting_players.erase(it);
+            delete player;
+            return;
+        }
+    }
+
+    if (player->is_connected) return;
     delete player;
 }
 
@@ -242,6 +267,7 @@ bool QuoridorServer::handle_game_message(QuoridorGame* game, Player* player, con
     Message message;
     if (!validate_client_message(game, player, message_string, message)
     || (message.get_type() != MessageType::MOVE && message.get_type() != MessageType::ACK)) {
+        player->is_connected = false;
         return false;
     }
 

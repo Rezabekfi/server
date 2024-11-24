@@ -31,6 +31,9 @@ private:
     void handle_disconnection(Player* player);
     void cleanup_player(Player* player);
 
+    Player* find_disconnected_player(const std::string& name);
+    bool handle_player_reconnection(Player* new_player, Player* existing_player);
+
 public:
     QuoridorServer();
     void start(int port);
