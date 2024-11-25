@@ -83,7 +83,9 @@ void QuoridorServer::cleanup_finished_games() {
 
 void QuoridorServer::handle_client(int client_socket) {
     Player* player = initialize_player(client_socket);
-    if (!player) return;
+    if (!player) {
+        return;
+    }
 
     if (!handle_player_name_setup(player)) {
         std::cout << "Player name setup failed for player " << player->name << std::endl;
@@ -115,14 +117,15 @@ void QuoridorServer::handle_client(int client_socket) {
 
     main_client_loop(player);
     std::cout << "Client loop ended for player " << player->name << std::endl;
-    cleanup_player(player); // hard disconect if client loop ended by error or something not allowed soft otherwise
+    cleanup_player(player);
 }
 
 Player* QuoridorServer::initialize_player(int client_socket) {
     Player* player = new Player(client_socket);
+    player->update_heartbeat();
     player->is_connected = true;
     player->is_reconnecting = false;
-    player->update_heartbeat();
+    
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
     player->send_message(Message::create_name_request());
     return player;
@@ -140,7 +143,16 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
             player->set_name(msg.get_data("name").value());
             player->update_heartbeat();
-            player->is_connected = true;
+            
+            // Check for disconnected player first
+            auto disconnected_player = find_disconnected_player(player->name);
+            if (!disconnected_player && active_games.size() >= MAX_GAMES) {
+                // Only reject if not reconnecting and server is full
+                player->is_connected = false;
+                player->send_message(Message::create_error("Server is full"));
+                return false;
+            }
+            
             return true;
         } else if (msg.get_type() == MessageType::ACK) {
             continue;
@@ -277,8 +289,10 @@ void QuoridorServer::cleanup_player(Player* player) {
         }
     }
 
-    if (player->is_connected) return;
-    delete player;
+    // Only delete if player is not in a game (game will handle deletion)
+    if (!player->is_connected && player->get_game_id() == -1) {
+        delete player;
+    }
 }
 
 bool QuoridorServer::validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message) {

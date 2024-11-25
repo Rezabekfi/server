@@ -12,8 +12,10 @@ QuoridorGame::~QuoridorGame() {
         if (player) {
             player->is_connected = false;
             player->is_reconnecting = false;
-            player->set_game_id(-1);
-            delete player;
+            if (player->get_game_id() != -1) {
+                player->set_game_id(-1);
+                delete player;
+            }
         }
     }
     players.clear();
