@@ -63,11 +63,22 @@ void QuoridorServer::handle_client(int client_socket) {
         return;
     }
 
-    if (!handle_matchmaking(player)) {
-        std::cout << "Matchmaking failed for player " << player->name << std::endl;
-        player->is_connected = false; // hard disconnect
-        cleanup_player(player);
-        return;
+    auto disconnected_player = find_disconnected_player(player->name);
+    bool skip_matchmaking = false;
+
+    if (disconnected_player != nullptr) {
+        skip_matchmaking = handle_player_reconnection(player, disconnected_player);
+    }
+
+    if (!skip_matchmaking) {
+        if (!handle_matchmaking(player)) {
+            std::cout << "Matchmaking failed for player " << player->name << std::endl;
+            player->is_connected = false;
+            cleanup_player(player);
+            return;
+        }
+    } else {
+        player = disconnected_player;
     }
 
     start_heartbeat_thread(player);
@@ -287,4 +298,44 @@ QuoridorServer::~QuoridorServer() {
     for (auto& game_pair : active_games) {
         delete game_pair.second;
     }
+}
+
+Player* QuoridorServer::find_disconnected_player(const std::string& name) {
+    std::lock_guard<std::mutex> lock(server_mutex);
+    
+    // Check in active games
+    for (const auto& game_pair : active_games) {
+        if (game_pair.second->get_state() != GameState::IN_PROGRESS) {
+            // maybe delete game? TODO: figure out how and when delete finished games
+            continue;
+        }
+        for (Player* player : game_pair.second->get_players()) {
+            if (player->name == name) {
+                return player;
+            }
+        }
+    }
+    return nullptr;
+}
+
+bool QuoridorServer::handle_player_reconnection(Player* new_player, Player* existing_player) {
+    // Check if there's an existing player to reconnect to
+    if (existing_player == nullptr) {
+        return false;
+    }
+    
+    // Transfer the socket and update connection status
+    existing_player->socket = new_player->socket;
+    existing_player->update_heartbeat();
+    
+    // Send current game state
+    auto game = active_games[existing_player->get_game_id()];
+    if (!game || game->get_state() != GameState::IN_PROGRESS) {
+        return false;
+    }
+    existing_player->send_message(Message::create_game_started(game));
+    // TODO: next turn is currently sent in connection checker inside game (might be changed to be here)
+    
+    delete new_player;  // Clean up the temporary player object
+    return true;
 }

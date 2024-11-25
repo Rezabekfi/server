@@ -11,12 +11,13 @@ const int Player::RECONNECTION_HEARTBEAT_TIMEOUT;
 Player::Player(int sock) : socket(sock), is_reconnecting(false), is_connected(true) {}
 
 void Player::send_message(const std::string& message) {
-    std::cout << "Sending message: " << message << std::endl;
     std::string msg = message + "\n";
     send(socket, msg.c_str(), msg.length()+1, 0);
 }
 
 void Player::send_message(const Message& message) {
+    // first line only for debugging
+    if (message.get_type() != MessageType::HEARTBEAT) std::cout << "Sending message: " << message.to_json() << std::endl;
     send_message(message.to_json());
 }
 

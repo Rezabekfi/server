@@ -56,6 +56,7 @@ public:
     std::string get_board_string() const;
     int get_current_player() const; 
     void set_current_player(int current_player);
+    GameState get_state() const;
     std::vector<std::pair<int, int>> get_horizontal_walls() const;
     std::vector<std::pair<int, int>> get_vertical_walls() const;
     void set_horizontal_walls(const std::vector<std::pair<int, int>>& horizontal_walls);

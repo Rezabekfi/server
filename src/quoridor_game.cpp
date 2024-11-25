@@ -430,3 +430,7 @@ void QuoridorGame::start_heartbeat_checker() {
         }
     }).detach();
 }
+
+GameState QuoridorGame::get_state() const {
+    return state;
+}
