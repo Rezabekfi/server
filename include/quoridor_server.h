@@ -11,6 +11,7 @@ private:
     std::map<size_t, QuoridorGame*> active_games;
     std::mutex server_mutex;
     size_t game_id_counter;
+    std::atomic<bool> running{true};
 
     void handle_client(int client_socket);
     // if the client is disconnected return false or if the client sends an invalid message return false -> disconnect client
@@ -37,5 +38,7 @@ private:
 public:
     QuoridorServer();
     void start(int port);
+    void start_game_cleaner();
+    void cleanup_finished_games();
     ~QuoridorServer();
 }; 

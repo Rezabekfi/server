@@ -30,6 +30,8 @@ void QuoridorServer::start(int port) {
     listen(server_socket, 5);
     std::cout << "Server started on port " << port << std::endl;
 
+    start_game_cleaner();
+
     while (true) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
@@ -49,6 +51,33 @@ void QuoridorServer::start(int port) {
         }
         std::thread client_thread(&QuoridorServer::handle_client, this, client_socket);
         client_thread.detach();
+    }
+}
+
+void QuoridorServer::start_game_cleaner() {
+    std::thread([this]() {
+        while (running) {
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            cleanup_finished_games();
+        }
+    }).detach();
+}
+
+void QuoridorServer::cleanup_finished_games() {
+    std::lock_guard<std::mutex> lock(server_mutex);
+    std::vector<size_t> games_to_remove;
+    
+    // First, collect all finished games
+    for (const auto& game_pair : active_games) {
+        if (game_pair.second->get_state() != GameState::IN_PROGRESS) {
+            games_to_remove.push_back(game_pair.first);
+        }
+    }
+    
+    // Then remove them
+    for (size_t game_id : games_to_remove) {
+        delete active_games[game_id];
+        active_games.erase(game_id);
     }
 }
 
@@ -288,6 +317,8 @@ bool QuoridorServer::handle_game_message(QuoridorGame* game, Player* player, con
 }
 
 QuoridorServer::~QuoridorServer() {
+    running = false;
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // Give cleaner thread time to finish
     close(server_socket);
     
     for (auto player : waiting_players) {

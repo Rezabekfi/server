@@ -64,4 +64,6 @@ public:
     std::vector<Player*> get_players() const;
     void set_players(const std::vector<Player*>& players);
     void start_heartbeat_checker();
+
+    ~QuoridorGame();
 }; 
