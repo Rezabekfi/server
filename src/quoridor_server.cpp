@@ -379,6 +379,7 @@ bool QuoridorServer::handle_player_reconnection(Player* new_player, Player* exis
         return false;
     }
     existing_player->send_message(Message::create_game_started(game));
+    existing_player->is_reconnecting = true;
     // TODO: next turn is currently sent in connection checker inside game (might be changed to be here)
     
     delete new_player;  // Clean up the temporary player object
