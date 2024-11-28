@@ -22,7 +22,8 @@ enum class MessageType {
     NAME_RESPONSE,
     HEARTBEAT,
     PLAYER_DISCONNECTED,
-    PLAYER_RECONNECTED
+    PLAYER_RECONNECTED,
+    ABANDON
 };
 
 class Message {

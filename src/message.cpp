@@ -97,6 +97,7 @@ Message Message::create_game_ended(QuoridorGame* game, Player* player) {
     msg.set_type(MessageType::GAME_ENDED);
     msg.set_data("lobby_id", game->get_lobby_id());
     msg.set_data("winner_id", player->id);
+    msg.set_data("board", game->get_board_string());
     return msg;
 }
 
@@ -181,6 +182,7 @@ std::string Message::message_type_to_string(MessageType type) {
         case MessageType::HEARTBEAT: return "heartbeat";
         case MessageType::PLAYER_DISCONNECTED: return "player_disconnected";
         case MessageType::PLAYER_RECONNECTED: return "player_reconnected";
+        case MessageType::ABANDON: return "abandon";
         default: return "unknown";
     }
 }
@@ -199,6 +201,7 @@ MessageType Message::string_to_message_type(const std::string& typeStr) {
     if (typeStr == "heartbeat") return MessageType::HEARTBEAT;
     if (typeStr == "player_disconnected") return MessageType::PLAYER_DISCONNECTED;
     if (typeStr == "player_reconnected") return MessageType::PLAYER_RECONNECTED;
+    if (typeStr == "abandon") return MessageType::ABANDON;
     return MessageType::WRONG_MESSAGE;
 }
 

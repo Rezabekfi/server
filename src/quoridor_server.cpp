@@ -240,6 +240,14 @@ bool QuoridorServer::handle_client_message(Player* player) {
     }
     std::cout << "Received message: " << msg.to_json() << std::endl;
     
+    if (msg.get_type() == MessageType::ABANDON) {
+        // if in queue delete that guy
+        // if in game -> end game opponnent is winner
+        // if not in game not in queue just delete the guy he will join again
+        player->is_connected = false;
+        return false;
+    }
+
     auto game_it = active_games.find(player->get_game_id());
     if (game_it == active_games.end()) {
         std::cout << "Game not found for player " << player->name << std::endl;

@@ -7,7 +7,7 @@ QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 QuoridorGame::~QuoridorGame() {
     std::lock_guard<std::mutex> lock(game_mutex);
     state = GameState::ENDED;
-    
+    /*
     for (auto player : players) {
         if (player) {
             player->is_connected = false;
@@ -19,6 +19,7 @@ QuoridorGame::~QuoridorGame() {
         }
     }
     players.clear();
+    */
 }
 
 bool QuoridorGame::add_player(Player* player) {
