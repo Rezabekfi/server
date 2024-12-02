@@ -2,6 +2,7 @@
 #include <map>
 #include <vector>
 #include <mutex>
+#include <atomic>
 #include "quoridor_game.h"
 
 class QuoridorServer {

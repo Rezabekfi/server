@@ -1,6 +1,7 @@
 #include "quoridor_game.h"
 #include <iostream>
 #include <thread>
+#include <queue>
 
 QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 

@@ -70,6 +70,7 @@
         ]
     }
 }
+// player move
 {
     "type": "move",
     "data": {
@@ -78,6 +79,7 @@
         "position": [[1,1]]
     }
 }
+// wall move
 {
     "type": "move",
     "data": {
@@ -105,5 +107,9 @@
 }
 {
     "type": "ack",
+    "data": {}
+}
+{
+    "type":"abandon",
     "data": {}
 }
