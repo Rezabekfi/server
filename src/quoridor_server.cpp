@@ -152,14 +152,19 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
                 player->send_message(Message::create_error("Server is full"));
                 return false;
             }
-            
             return true;
         } else if (msg.get_type() == MessageType::ACK) {
             continue;
+        } else if (msg.get_type() == MessageType::ABANDON) {
+            player->is_connected = false;
+            return false;
+        } else if (msg.get_type() == MessageType::HEARTBEAT) {
+            player->send_message(Message::create_ack());
+            continue;
         }
         
-        player->send_message(Message::create_error("Please provide your name first"));
-        player->send_message(Message::create_name_request());
+        player->send_message(Message::create_error("Wrong message (expected name response)"));
+        return false;
     }
 }
 

@@ -152,6 +152,12 @@ Message Message::create_heartbeat() {
     return msg;
 }
 
+Message Message::create_ack() {
+    Message msg;
+    msg.set_type(MessageType::ACK);
+    return msg;
+}
+
 Message Message::create_player_disconnected(Player* player) {
     Message msg;
     msg.set_type(MessageType::PLAYER_DISCONNECTED);

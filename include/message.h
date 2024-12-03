@@ -59,6 +59,7 @@ public:
     static Message create_heartbeat();
     static Message create_player_disconnected(Player* player);
     static Message create_player_reconnected(Player* player);
+    static Message create_ack();
     // Type conversion helpers
     static std::string message_type_to_string(MessageType type);
     static MessageType string_to_message_type(const std::string& typeStr);
