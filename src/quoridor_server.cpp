@@ -157,6 +157,11 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         Message msg(buffer);
         
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
+            // validate first (name is required)
+            if (!msg.get_data("name").has_value()) {
+                player->send_message(Message::create_error("Name is required"));
+                return false;
+            }
             player->set_name(msg.get_data("name").value());
             player->update_heartbeat();
             
@@ -164,7 +169,6 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
             auto disconnected_player = find_disconnected_player(player->name);
             if (!disconnected_player && active_games.size() >= MAX_GAMES) {
                 // Only reject if not reconnecting and server is full
-                player->is_connected = false;
                 player->send_message(Message::create_error("Server is full"));
                 return false;
             }
