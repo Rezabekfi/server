@@ -9,6 +9,9 @@
 #include "move.h"
 #include "quoridor_game.h"
 #include "player.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <arpa/inet.h>
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -20,7 +23,20 @@ QuoridorServer::QuoridorServer() : game_id_counter(0) {
 void QuoridorServer::start(int port) {
     sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    // read address from ../connection_settings.txt
+    std::ifstream settings_file("../connection_settings.txt");
+    if (!settings_file.is_open()) {
+        throw std::runtime_error("Could not open connection settings file.");
+    }
+
+    nlohmann::json settings;
+    settings_file >> settings;
+    std::string address = settings["address"];
+
+    std::cout << "Starting server on port " << port << "..." << std::endl;
+    if (inet_pton(AF_INET, address.c_str(), &server_addr.sin_addr) <= 0) {
+        throw std::runtime_error("Invalid IP address format in connection settings." + address);
+    }
     server_addr.sin_port = htons(port);
 
     if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
