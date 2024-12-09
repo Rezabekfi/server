@@ -103,6 +103,8 @@ void QuoridorServer::handle_client(int client_socket) {
         return;
     }
 
+    setup_socket_timeout(client_socket);
+
     if (!handle_player_name_setup(player)) {
         std::cout << "Player name setup failed for player " << player->name << std::endl;
         player->is_connected = false; // hard disconnect
@@ -128,9 +130,6 @@ void QuoridorServer::handle_client(int client_socket) {
         player = disconnected_player;
     }
 
-    start_heartbeat_thread(player);
-    setup_socket_timeout(client_socket);
-
     main_client_loop(player);
     std::cout << "Client loop ended for player " << player->name << std::endl;
     cleanup_player(player);
@@ -141,7 +140,7 @@ Player* QuoridorServer::initialize_player(int client_socket) {
     player->update_heartbeat();
     player->is_connected = true;
     player->is_reconnecting = false;
-    
+    player->update_heartbeat();
     player->send_message(Message::create_welcome("Connected to Quoridor server"));
     player->send_message(Message::create_name_request());
     return player;
@@ -150,12 +149,26 @@ Player* QuoridorServer::initialize_player(int client_socket) {
 bool QuoridorServer::handle_player_name_setup(Player* player) {
     char buffer[1024];
     while (true) {
+        if (std::chrono::steady_clock::now() - player->last_heartbeat > std::chrono::seconds(Player::NORMAL_HEARTBEAT_TIMEOUT)) {
+            return false;
+        }
+        player->send_message(Message::create_heartbeat());
         int bytes_read = recv(player->socket, buffer, sizeof(buffer), 0);
-        if (bytes_read <= 0) return false;
+        if (bytes_read < 0) {
+            if (!handle_receive_error(player)) {
+                return false;
+            } else {
+                continue;
+            }
+        }
+        if (bytes_read == 0) return false;
+
+        player->update_heartbeat();
         
         buffer[bytes_read] = '\0';
+        std::cout << "Received message: " << buffer << std::endl;
         Message msg(buffer);
-        
+        std::cout << "Received message: " << msg.to_json() << std::endl;
         if (msg.get_type() == MessageType::NAME_RESPONSE) {
             // validate first (name is required)
             if (!msg.get_data("name").has_value()) {
@@ -163,7 +176,6 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
                 return false;
             }
             player->set_name(msg.get_data("name").value());
-            player->update_heartbeat();
             
             // Check for disconnected player first
             auto disconnected_player = find_disconnected_player(player->name);
@@ -252,7 +264,8 @@ bool QuoridorServer::handle_client_message(Player* player) {
     if (bytes_read < 0) {
         return handle_receive_error(player);
     } else if (bytes_read == 0) {
-        return false; // soft disconnect (usually because of client closed = closed connection = client has sent a 0 bytes message)
+        player->is_connected = false;
+        return false;
     }
     
     buffer[bytes_read] = '\0';
@@ -260,9 +273,15 @@ bool QuoridorServer::handle_client_message(Player* player) {
     
     player->update_heartbeat();
     
-    if (msg.get_type() == MessageType::HEARTBEAT || msg.get_type() == MessageType::ACK) {
+    if (msg.get_type() == MessageType::ACK) {
         return true;
     }
+
+    if (msg.get_type() == MessageType::HEARTBEAT) {
+        player->send_message(Message::create_ack());
+        return true;
+    }
+
     std::cout << "Received message: " << msg.to_json() << std::endl;
     
     if (msg.get_type() == MessageType::ABANDON) {
@@ -401,7 +420,6 @@ bool QuoridorServer::handle_player_reconnection(Player* new_player, Player* exis
     if (existing_player == nullptr) {
         return false;
     }
-    
     // Transfer the socket and update connection status
     existing_player->socket = new_player->socket;
     existing_player->update_heartbeat();
