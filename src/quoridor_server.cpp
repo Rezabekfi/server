@@ -148,6 +148,7 @@ Player* QuoridorServer::initialize_player(int client_socket) {
 
 bool QuoridorServer::handle_player_name_setup(Player* player) {
     char buffer[1024];
+    std::string message_buffer;
     while (true) {
         if (std::chrono::steady_clock::now() - player->last_heartbeat > std::chrono::seconds(Player::NORMAL_HEARTBEAT_TIMEOUT)) {
             return false;
@@ -166,37 +167,46 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         player->update_heartbeat();
         
         buffer[bytes_read] = '\0';
-        std::cout << "Received message: " << buffer << std::endl;
-        Message msg(buffer);
-        std::cout << "Received message: " << msg.to_json() << std::endl;
-        if (msg.get_type() == MessageType::NAME_RESPONSE) {
-            // validate first (name is required)
-            if (!msg.get_data("name").has_value()) {
-                player->send_message(Message::create_error("Name is required"));
+        message_buffer += buffer;
+
+        std::stringstream ss(message_buffer);
+        std::string message;
+        while (std::getline(ss, message, '\n')) {
+            if (message.empty()) continue;
+
+            std::cout << "Received message: " << message << std::endl;
+            Message msg(message);
+            std::cout << "Received message: " << msg.to_json() << std::endl;
+            if (msg.get_type() == MessageType::NAME_RESPONSE) {
+                // validate first (name is required)
+                if (!msg.get_data("name").has_value()) {
+                    player->send_message(Message::create_error("Name is required"));
+                    return false;
+                }
+                player->set_name(msg.get_data("name").value());
+                
+                // Check for disconnected player first
+                auto disconnected_player = find_disconnected_player(player->name);
+                if (!disconnected_player && active_games.size() >= MAX_GAMES) {
+                    // Only reject if not reconnecting and server is full
+                    player->send_message(Message::create_error("Server is full"));
+                    return false;
+                }
+                return true;
+            } else if (msg.get_type() == MessageType::ACK) {
+                continue;
+            } else if (msg.get_type() == MessageType::ABANDON) {
+                player->is_connected = false;
                 return false;
+            } else if (msg.get_type() == MessageType::HEARTBEAT) {
+                player->send_message(Message::create_ack());
+                continue;
             }
-            player->set_name(msg.get_data("name").value());
             
-            // Check for disconnected player first
-            auto disconnected_player = find_disconnected_player(player->name);
-            if (!disconnected_player && active_games.size() >= MAX_GAMES) {
-                // Only reject if not reconnecting and server is full
-                player->send_message(Message::create_error("Server is full"));
-                return false;
-            }
-            return true;
-        } else if (msg.get_type() == MessageType::ACK) {
-            continue;
-        } else if (msg.get_type() == MessageType::ABANDON) {
-            player->is_connected = false;
+            player->send_message(Message::create_error("Wrong message (expected name response)"));
             return false;
-        } else if (msg.get_type() == MessageType::HEARTBEAT) {
-            player->send_message(Message::create_ack());
-            continue;
         }
-        
-        player->send_message(Message::create_error("Wrong message (expected name response)"));
-        return false;
+        message_buffer = ss.str();
     }
 }
 
@@ -259,6 +269,7 @@ void QuoridorServer::main_client_loop(Player* player) {
 
 bool QuoridorServer::handle_client_message(Player* player) {
     char buffer[1024];
+    std::string message_buffer;
     int bytes_read = recv(player->socket, buffer, sizeof(buffer), 0);
     
     if (bytes_read < 0) {
@@ -269,37 +280,45 @@ bool QuoridorServer::handle_client_message(Player* player) {
     }
     
     buffer[bytes_read] = '\0';
-    Message msg(buffer);
-    
-    player->update_heartbeat();
-    
-    if (msg.get_type() == MessageType::ACK) {
-        return true;
-    }
+    message_buffer += buffer;
 
-    if (msg.get_type() == MessageType::HEARTBEAT) {
-        player->send_message(Message::create_ack());
-        return true;
-    }
+    std::stringstream ss(message_buffer);
+    std::string message;
+    while (std::getline(ss, message, '\n')) {
+        if (message.empty()) continue;
 
-    std::cout << "Received message: " << msg.to_json() << std::endl;
-    
-    if (msg.get_type() == MessageType::ABANDON) {
-        // if in queue delete that guy
-        // if in game -> end game opponnent is winner
-        // if not in game not in queue just delete the guy he will join again
-        player->is_connected = false;
-        return false;
-    }
+        Message msg(message);
+        player->update_heartbeat();
+        
+        if (msg.get_type() == MessageType::ACK) {
+            continue;
+        }
 
-    auto game_it = active_games.find(player->get_game_id());
-    if (game_it == active_games.end()) {
-        std::cout << "Game not found for player " << player->name << std::endl;
-        player->is_connected = false;
-        return false;
+        if (msg.get_type() == MessageType::HEARTBEAT) {
+            player->send_message(Message::create_ack());
+            continue;
+        }
+
+        std::cout << "Received message: " << msg.to_json() << std::endl;
+        
+        if (msg.get_type() == MessageType::ABANDON) {
+            player->is_connected = false;
+            return false;
+        }
+
+        auto game_it = active_games.find(player->get_game_id());
+        if (game_it == active_games.end()) {
+            std::cout << "Game not found for player " << player->name << std::endl;
+            player->is_connected = false;
+            return false;
+        }
+        
+        if (!handle_game_message(game_it->second, player, message.c_str())) {
+            return false;
+        }
     }
-    
-    return handle_game_message(game_it->second, player, buffer);
+    message_buffer = ss.str();
+    return true;
 }
 
 bool QuoridorServer::handle_receive_error(Player* player) {
