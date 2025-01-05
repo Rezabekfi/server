@@ -17,8 +17,8 @@ void Player::send_message(const std::string& message) {
 
 void Player::send_message(const Message& message) {
     // first line only for debugging
-    if (message.get_type() != MessageType::HEARTBEAT) std::cout << "Sending message: " << message.to_json() << std::endl;
-    send_message(message.to_json());
+    if (message.get_type() != MessageType::HEARTBEAT) std::cout << "Sending message: " << message.to_string() << std::endl;
+    send_message(message.to_string());
 }
 
 void Player::set_id(std::string id) {

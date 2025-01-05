@@ -1,7 +1,7 @@
 #include "quoridor_server.h"
 #include <iostream>
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include "message.h"
 #include <any>
 
 int main() {
@@ -11,9 +11,9 @@ int main() {
             throw std::runtime_error("Could not open connection settings file.");
         }
 
-        nlohmann::json settings;
-        settings_file >> settings;
-        int port = settings["port"];
+        std::string address;
+        int port;
+        settings_file >> address >> port;
 
         std::cout << "Starting server on port " << port << "..." << std::endl;
         QuoridorServer server;

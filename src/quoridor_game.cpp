@@ -74,7 +74,8 @@ void QuoridorGame::handle_move(Move move) {
 
 void QuoridorGame::handle_game_end() {
     state = GameState::ENDED;
-    notify_all_players(Message::create_game_ended(this, players[current_player]));
+    int winner = (current_player == 0) ? 1 : 0;
+    notify_all_players(Message::create_game_ended(this, players[winner]));
     for (auto player : players) {
         player->is_connected = false;
         player->is_reconnecting = false;

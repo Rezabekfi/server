@@ -63,6 +63,17 @@
         "valarray": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "atomic": "cpp",
+        "bit": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "exception": "cpp",
+        "iterator": "cpp",
+        "random": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "*.tcc": "cpp",
+        "cinttypes": "cpp"
     }
 }

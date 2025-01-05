@@ -2,7 +2,6 @@
 #include <string>
 #include <map>
 #include <optional>
-#include <nlohmann/json.hpp>
 
 // Forward declarations
 class Player;
@@ -28,24 +27,22 @@ enum class MessageType {
 
 class Message {
 private:
-    nlohmann::ordered_json message;
     MessageType type;
+    std::string data;
 
-    void add_player(Player* player);
+    void add_players(std::vector<Player*> player);
+    void add_walls(const std::vector<std::pair<int, int>>& horizontal_walls, const std::vector<std::pair<int, int>>& vertical_walls);
 public:
-    
     Message();
-    explicit Message(const std::string& json_string);
+    explicit Message(const std::string& message_string);
     
     void set_type(MessageType type);
     void set_data(const std::string& key, const std::string& value);
-    void set_data(const std::string& key, const nlohmann::ordered_json& value);
     
     MessageType get_type() const;
     std::optional<std::string> get_data(const std::string& key) const;
-    std::optional<nlohmann::ordered_json> get_data_object() const;
     
-    std::string to_json() const;
+    std::string to_string() const;
     bool validate() const;
 
     // Static factory methods
@@ -63,4 +60,4 @@ public:
     // Type conversion helpers
     static std::string message_type_to_string(MessageType type);
     static MessageType string_to_message_type(const std::string& typeStr);
-}; 
+};

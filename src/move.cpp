@@ -1,24 +1,47 @@
 #include "move.h"
+#include <sstream>
 
-Move::Move(bool is_horizontal, std::vector<std::pair<int, int>> position, int player_id) : is_horizontal(is_horizontal), position(position), player_id(player_id) {}
+Move::Move(bool is_horizontal, std::vector<std::pair<int, int>> position, int player_id) 
+    : is_horizontal(is_horizontal), position(position), player_id(player_id) {}
 
 Move::Move(Message message) {
+    if (message.get_type() != MessageType::MOVE) {
+        is_valid_structure = false;
+        return;
+    }
     try {
-        nlohmann::json data = message.get_data_object().value();
-        if (!data.contains("is_horizontal") || !data.contains("position") || !data.contains("player_id")) {
+        auto is_horizontal_opt = message.get_data("is_horizontal");
+        auto position_opt = message.get_data("position");
+        auto player_id_opt = message.get_data("player_id");
+
+        if (!is_horizontal_opt.has_value() || !position_opt.has_value() || !player_id_opt.has_value()) {
             is_valid_structure = false;
             return;
         }
-        is_horizontal = data["is_horizontal"].get<bool>();
-        position = data["position"].get<std::vector<std::pair<int, int>>>();
-        player_id = data["player_id"].get<int>();
+
+        is_horizontal = (*is_horizontal_opt == "true");
+        player_id = std::stoi(*player_id_opt);
+
+        std::istringstream pos_stream(*position_opt);
+        std::string pos_pair;
+        while (std::getline(pos_stream, pos_pair, ']')) {
+            if (pos_pair.empty()) continue;
+            pos_pair = pos_pair.substr(pos_pair.find('[') + 1);
+            auto delimiter_pos = pos_pair.find(',');
+            if (delimiter_pos != std::string::npos) {
+                int row = std::stoi(pos_pair.substr(0, delimiter_pos));
+                int col = std::stoi(pos_pair.substr(delimiter_pos + 1));
+                position.emplace_back(row, col);
+            }
+            pos_stream.ignore(1, ','); // Ignore the comma
+        }
+
         is_valid_structure = true;
     } catch (const std::exception&) {
         is_valid_structure = false;
     }
 }
 
-// this might not be needed TODO: check if necessary
 bool Move::get_is_horizontal() const {
     return is_horizontal;
 }

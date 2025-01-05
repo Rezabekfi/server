@@ -10,7 +10,6 @@
 #include "quoridor_game.h"
 #include "player.h"
 #include <fstream>
-#include <nlohmann/json.hpp>
 #include <arpa/inet.h>
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
@@ -29,13 +28,15 @@ void QuoridorServer::start(int port) {
         throw std::runtime_error("Could not open connection settings file.");
     }
 
-    nlohmann::json settings;
-    settings_file >> settings;
-    std::string address = settings["address"];
+    std::string address;
+    std::getline(settings_file, address);
+    std::string port_str;
+    std::getline(settings_file, port_str);
+    port = std::stoi(port_str);
 
     std::cout << "Starting server on port " << port << "..." << std::endl;
     if (inet_pton(AF_INET, address.c_str(), &server_addr.sin_addr) <= 0) {
-        throw std::runtime_error("Invalid IP address format in connection settings." + address);
+        throw std::runtime_error("Invalid IP address format in connection settings: " + address);
     }
     server_addr.sin_port = htons(port);
 
@@ -168,15 +169,12 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         
         buffer[bytes_read] = '\0';
         message_buffer += buffer;
-
         std::stringstream ss(message_buffer);
         std::string message;
         while (std::getline(ss, message, '\n')) {
             if (message.empty()) continue;
-
-            std::cout << "Received message: " << message << std::endl;
             Message msg(message);
-            std::cout << "Received message: " << msg.to_json() << std::endl;
+            std::cout << "Received message: " << msg.to_string() << std::endl;
             if (msg.get_type() == MessageType::NAME_RESPONSE) {
                 // validate first (name is required)
                 if (!msg.get_data("name").has_value()) {
@@ -299,7 +297,7 @@ bool QuoridorServer::handle_client_message(Player* player) {
             continue;
         }
 
-        std::cout << "Received message: " << msg.to_json() << std::endl;
+        std::cout << "Received message: " << msg.to_string() << std::endl;
         
         if (msg.get_type() == MessageType::ABANDON) {
             player->is_connected = false;

@@ -3,46 +3,39 @@
 #include "quoridor_game.h"
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 Message::Message() {
-    message = nlohmann::ordered_json::object();
-    message = {
-        {"type", message_type_to_string(MessageType::WRONG_MESSAGE)},
-        {"data", nlohmann::ordered_json::object()}
-    };
     type = MessageType::WRONG_MESSAGE;
+    data = "";
 }
 
-Message::Message(const std::string& json_string) {
-    try {
-        message = nlohmann::ordered_json::parse(json_string);
-        type = string_to_message_type(message["type"].get<std::string>());
-        if (!message.contains("data")) {
-            message = {
-                {"type", message_type_to_string(type)},
-                {"data", nlohmann::ordered_json::object()}
-            };
-        }
-    } catch (const nlohmann::json::exception& e) {
+Message::Message(const std::string& message_string) {
+    std::istringstream stream(message_string);
+    std::string type_str;
+    std::getline(stream, type_str, '|');
+    type = string_to_message_type(type_str.substr(5)); // Remove "type:"
+    data = message_string.substr(type_str.length() + 1); // Remove "type:" and "|"
+    if (data.substr(0, 5) == "data:") {
+        data = data.substr(5); // Remove "data:"
+    } else {
         type = MessageType::WRONG_MESSAGE;
-        message = {
-            {"type", message_type_to_string(MessageType::WRONG_MESSAGE)},
-            {"data", nlohmann::ordered_json::object()}
-        };
+    }
+    
+    if (!validate()) {
+        type = MessageType::WRONG_MESSAGE;
+        data = "";
+        set_data("message", "Invalid message structure");
     }
 }
 
 void Message::set_type(MessageType msg_type) {
     type = msg_type;
-    message["type"] = message_type_to_string(type);
 }
 
 void Message::set_data(const std::string& key, const std::string& value) {
-    message["data"][key] = value;
-}
-
-void Message::set_data(const std::string& key, const nlohmann::ordered_json& value) {
-    message["data"][key] = value;
+    data += key + "=" + value + ";";
 }
 
 MessageType Message::get_type() const {
@@ -50,26 +43,28 @@ MessageType Message::get_type() const {
 }
 
 std::optional<std::string> Message::get_data(const std::string& key) const {
-    if (message["data"].contains(key)) {
-        return message["data"][key].get<std::string>();
+    std::istringstream stream(data);
+    std::string pair;
+
+    while (std::getline(stream, pair, ';')) {
+        auto delimiter_pos = pair.find('=');
+        if (delimiter_pos != std::string::npos) {
+            std::string k = pair.substr(0, delimiter_pos);
+            std::string v = pair.substr(delimiter_pos + 1);
+            if (k == key) {
+                return v;
+            }
+        }
     }
     return std::nullopt;
 }
 
-std::optional<nlohmann::ordered_json> Message::get_data_object() const {
-    if (message.contains("data")) {
-        return message["data"];
-    }
-    return std::nullopt;
+std::string Message::to_string() const {
+    return "type:" + message_type_to_string(type) + "|data:" + ((data.empty()) ? ";" :data);
 }
 
-std::string Message::to_json() const {
-    return message.dump();
-}
-
-// TOOD: might need more thorough validation
 bool Message::validate() const {
-    return message.contains("type") && message.contains("data");
+    return (type != MessageType::WRONG_MESSAGE);
 }
 
 Message Message::create_welcome(const std::string& message) {
@@ -85,7 +80,6 @@ Message Message::create_waiting() {
     return msg;
 }
 
-// TODO: this might be a useless and replaced by create_next_turn
 Message Message::create_game_started(QuoridorGame* game) {
     Message msg = create_next_turn(game);
     msg.set_type(MessageType::GAME_STARTED);
@@ -95,7 +89,7 @@ Message Message::create_game_started(QuoridorGame* game) {
 Message Message::create_game_ended(QuoridorGame* game, Player* player) {
     Message msg;
     msg.set_type(MessageType::GAME_ENDED);
-    msg.set_data("lobby_id", game->get_lobby_id());
+    msg.set_data("lobby_id", std::to_string(game->get_lobby_id()));
     msg.set_data("winner_id", player->id);
     msg.set_data("board", game->get_board_string());
     return msg;
@@ -111,33 +105,54 @@ Message Message::create_error(const std::string& message) {
 Message Message::create_next_turn(QuoridorGame* game) {
     Message msg;
     msg.set_type(MessageType::NEXT_TURN);
-    msg.set_data("lobby_id", game->get_lobby_id());
+    msg.set_data("lobby_id", std::to_string(game->get_lobby_id()));
     msg.set_data("board", game->get_board_string());
     msg.set_data("current_player_id", game->get_players()[game->get_current_player()]->id);
 
     // send walls
-    msg.set_data("horizontal_walls", game->get_horizontal_walls());
-    msg.set_data("vertical_walls", game->get_vertical_walls());
+    msg.add_walls(game->get_horizontal_walls(), game->get_vertical_walls());
     
     // Add players using the new method
-    msg.add_player(game->get_players()[0]);
-    msg.add_player(game->get_players()[1]);
+    msg.add_players(game->get_players());
+    
     
     return msg;
 }
 
-void Message::add_player(Player* player) {
-    if (!message["data"].contains("players")) {
-        message["data"]["players"] = nlohmann::ordered_json::array();
+void Message::add_walls(const std::vector<std::pair<int, int>>& horizontal_walls, const std::vector<std::pair<int, int>>& vertical_walls) {
+    data += "horizontal_walls=";
+    for (int i = 0; i < horizontal_walls.size(); i++) {
+        data += "[" + std::to_string(horizontal_walls[i].first) + "," + std::to_string(horizontal_walls[i].second) + "]";
+        if (i != horizontal_walls.size() - 1) {
+            data += ",";
+        }
     }
-    
-    message["data"]["players"].push_back({
-        {"id", player->id},
-        {"position", player->position},
-        {"name", player->name},
-        {"board_char", std::string(1, player->get_board_char())},
-        {"walls_left", player->get_walls_left()}
-    });
+    if (vertical_walls.empty()) {
+        data += "[]";
+    }
+    data += ";vertical_walls=";
+    for (int i = 0; i < vertical_walls.size(); i++) {
+        data += "(" + std::to_string(vertical_walls[i].first) + "," + std::to_string(vertical_walls[i].second) + ")";
+        if (i != vertical_walls.size() - 1) {
+            data += ",";
+        }
+    }
+    if (vertical_walls.empty()) {
+        data += "[]";
+    }
+    data += ";";
+}
+
+void Message::add_players(std::vector<Player*> players) {
+    data += "players=";
+    for (int i = 0; i < players.size(); i++) {
+        data += "[id:" + players[i]->id + ",row:" + std::to_string(players[i]->position.first) + ",col:" + std::to_string(players[i]->position.second) + ",name:" + players[i]->name + ",board_char:" + std::string(1, players[i]->get_board_char()) + ",walls_left:" + std::to_string(players[i]->get_walls_left()) + "]";
+        if (i != players.size() - 1) {
+            data += ",";
+        }
+    }
+    data += ";";
+    // data += "players=
 }
 
 Message Message::create_name_request() {
