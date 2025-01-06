@@ -5,29 +5,50 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <optional>
+#include <map>
 
 Message::Message() {
     type = MessageType::WRONG_MESSAGE;
-    data = "";
 }
 
 Message::Message(const std::string& message_string) {
     std::istringstream stream(message_string);
     std::string type_str;
+    std::string data_str;
     std::getline(stream, type_str, '|');
     type = string_to_message_type(type_str.substr(5)); // Remove "type:"
-    data = message_string.substr(type_str.length() + 1); // Remove "type:" and "|"
-    if (data.substr(0, 5) == "data:") {
-        data = data.substr(5); // Remove "data:"
+    data_str = message_string.substr(type_str.length() + 1); // Remove "type:" and "|"
+    if (data_str.substr(0, 5) == "data:") {
+        extract_data(data_str.substr(5));
     } else {
         type = MessageType::WRONG_MESSAGE;
     }
     
     if (!validate()) {
         type = MessageType::WRONG_MESSAGE;
-        data = "";
         set_data("message", "Invalid message structure");
     }
+}
+
+bool Message::extract_data(const std::string& data_str) {
+    if (data_str.length() == 1 && data_str[0] == ';') {
+        return true; // No data, but validly formatted
+    }
+    std::istringstream stream(data_str);
+    std::string pair;
+    while (std::getline(stream, pair, ';')) {
+        auto delimiter_pos = pair.find('=');
+        if (delimiter_pos != std::string::npos) {
+            std::string key = pair.substr(0, delimiter_pos);
+            std::string value = pair.substr(delimiter_pos + 1);
+            if (value.empty()) {
+                return false; // Empty values we do not allow
+            }
+            data[key] = value;
+        }
+    }
+    return true;
 }
 
 void Message::set_type(MessageType msg_type) {
@@ -35,7 +56,7 @@ void Message::set_type(MessageType msg_type) {
 }
 
 void Message::set_data(const std::string& key, const std::string& value) {
-    data += key + "=" + value + ";";
+    data[key] = value;
 }
 
 MessageType Message::get_type() const {
@@ -43,24 +64,22 @@ MessageType Message::get_type() const {
 }
 
 std::optional<std::string> Message::get_data(const std::string& key) const {
-    std::istringstream stream(data);
-    std::string pair;
-
-    while (std::getline(stream, pair, ';')) {
-        auto delimiter_pos = pair.find('=');
-        if (delimiter_pos != std::string::npos) {
-            std::string k = pair.substr(0, delimiter_pos);
-            std::string v = pair.substr(delimiter_pos + 1);
-            if (k == key) {
-                return v;
-            }
-        }
+    auto it = data.find(key);
+    if (it != data.end()) {
+        return it->second;
     }
     return std::nullopt;
 }
 
 std::string Message::to_string() const {
-    return "type:" + message_type_to_string(type) + "|data:" + ((data.empty()) ? ";" :data);
+    std::string message = "type:" + message_type_to_string(type) + "|data:";
+    for (const auto& pair : data) {
+        message += pair.first + "=" + pair.second + ";";
+    }
+    if (data.empty()) {
+        message += ";";
+    }
+    return message;
 }
 
 bool Message::validate() const {
@@ -110,7 +129,8 @@ Message Message::create_next_turn(QuoridorGame* game) {
     msg.set_data("current_player_id", game->get_players()[game->get_current_player()]->id);
 
     // send walls
-    msg.add_walls(game->get_horizontal_walls(), game->get_vertical_walls());
+    msg.add_walls(game->get_horizontal_walls(), true);
+    msg.add_walls(game->get_vertical_walls(), false);
     
     // Add players using the new method
     msg.add_players(game->get_players());
@@ -119,40 +139,33 @@ Message Message::create_next_turn(QuoridorGame* game) {
     return msg;
 }
 
-void Message::add_walls(const std::vector<std::pair<int, int>>& horizontal_walls, const std::vector<std::pair<int, int>>& vertical_walls) {
-    data += "horizontal_walls=";
-    for (int i = 0; i < horizontal_walls.size(); i++) {
-        data += "[" + std::to_string(horizontal_walls[i].first) + "," + std::to_string(horizontal_walls[i].second) + "]";
-        if (i != horizontal_walls.size() - 1) {
-            data += ",";
+void Message::add_walls(const std::vector<std::pair<int, int>>& walls, bool is_horizontal) {
+    std::string key = (is_horizontal) ? "horizontal_walls" : "vertical_walls";
+    std::string value = "";
+    for (int i = 0; i < walls.size(); i++) {
+        value += "[" + std::to_string(walls[i].first) + "," + std::to_string(walls[i].second) + "]";
+        if (i != walls.size() - 1) {
+            value += ",";
         }
     }
-    if (vertical_walls.empty()) {
-        data += "[]";
+    if (walls.empty()) {
+        value += "[]";
     }
-    data += ";vertical_walls=";
-    for (int i = 0; i < vertical_walls.size(); i++) {
-        data += "(" + std::to_string(vertical_walls[i].first) + "," + std::to_string(vertical_walls[i].second) + ")";
-        if (i != vertical_walls.size() - 1) {
-            data += ",";
-        }
-    }
-    if (vertical_walls.empty()) {
-        data += "[]";
-    }
-    data += ";";
+    data[key] = value;
 }
 
 void Message::add_players(std::vector<Player*> players) {
-    data += "players=";
+    std::string key = "players";
+    std::string value = "";
     for (int i = 0; i < players.size(); i++) {
-        data += "[id:" + players[i]->id + ",row:" + std::to_string(players[i]->position.first) + ",col:" + std::to_string(players[i]->position.second) + ",name:" + players[i]->name + ",board_char:" + std::string(1, players[i]->get_board_char()) + ",walls_left:" + std::to_string(players[i]->get_walls_left()) + "]";
+        value += "[id:" + players[i]->id + ",row:" + std::to_string(players[i]->position.first) + ",col:" + std::to_string(players[i]->position.second) + ",name:" + players[i]->name + ",board_char:" + std::string(1, players[i]->get_board_char()) + ",walls_left:" + std::to_string(players[i]->get_walls_left()) + "]";
         if (i != players.size() - 1) {
-            data += ",";
+            value += ",";
         }
     }
-    data += ";";
-    // data += "players=
+    value += ";";
+    // here we do not check if the value is empty or not if it is I am throwing the pc out of the window.
+    data[key] = value;
 }
 
 Message Message::create_name_request() {

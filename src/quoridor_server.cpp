@@ -174,6 +174,7 @@ bool QuoridorServer::handle_player_name_setup(Player* player) {
         while (std::getline(ss, message, '\n')) {
             if (message.empty()) continue;
             Message msg(message);
+            // when message is incorrect we print WRONG_MESSAGE, so we dont need to worry about printing out dangerous data. 
             std::cout << "Received message: " << msg.to_string() << std::endl;
             if (msg.get_type() == MessageType::NAME_RESPONSE) {
                 // validate first (name is required)
@@ -296,7 +297,8 @@ bool QuoridorServer::handle_client_message(Player* player) {
             player->send_message(Message::create_ack());
             continue;
         }
-
+        // when message is incorrect we print WRONG_MESSAGE, so we dont need to worry about printing out dangerous data.
+        // printing is here to avoid clustering print statements.
         std::cout << "Received message: " << msg.to_string() << std::endl;
         
         if (msg.get_type() == MessageType::ABANDON) {

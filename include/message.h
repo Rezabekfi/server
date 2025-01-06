@@ -28,10 +28,12 @@ enum class MessageType {
 class Message {
 private:
     MessageType type;
-    std::string data;
+    std::map<std::string, std::string> data;
 
     void add_players(std::vector<Player*> player);
-    void add_walls(const std::vector<std::pair<int, int>>& horizontal_walls, const std::vector<std::pair<int, int>>& vertical_walls);
+    void add_walls(const std::vector<std::pair<int, int>>& horizontal_walls, bool is_horizontal);
+
+    bool extract_data(const std::string& data_str);
 public:
     Message();
     explicit Message(const std::string& message_string);
