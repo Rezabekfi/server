@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sstream>
 #include <cstring>
+#include <algorithm>
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
