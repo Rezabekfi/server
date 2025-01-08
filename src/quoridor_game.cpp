@@ -2,6 +2,8 @@
 #include <thread>
 #include <queue>
 #include <vector>
+#include <algorithm>
+#include <utility>
 
 QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 
