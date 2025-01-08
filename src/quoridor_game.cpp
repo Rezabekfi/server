@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <queue>
+#include <vector>
 
 QuoridorGame::QuoridorGame() : state(GameState::WAITING), current_player(0) {}
 
