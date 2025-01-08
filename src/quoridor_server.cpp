@@ -11,6 +11,8 @@
 #include "player.h"
 #include <fstream>
 #include <arpa/inet.h>
+#include <sstream>
+#include <cstring>
 
 QuoridorServer::QuoridorServer() : game_id_counter(0) {
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
