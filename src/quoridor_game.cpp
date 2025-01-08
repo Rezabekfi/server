@@ -1,5 +1,4 @@
 #include "quoridor_game.h"
-#include <iostream>
 #include <thread>
 #include <queue>
 #include <vector>
@@ -270,7 +269,7 @@ bool QuoridorGame::is_wall_between(int row1, int col1, int row2, int col2) {
     // vertical movement
     bool horizontal_blocked = false;
     if (col1 == col2) {
-        int wall_col = col1;
+        int wall_col = col1; 
         int wall_row = std::min(row1, row2);
         horizontal_blocked = std::find(horizontal_walls.begin(), horizontal_walls.end(), std::make_pair(wall_row, wall_col)) != horizontal_walls.end();
     }
