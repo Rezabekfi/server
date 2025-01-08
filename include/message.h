@@ -2,6 +2,7 @@
 #include <string>
 #include <map>
 #include <optional>
+#include <vector>
 
 // Forward declarations
 class Player;
