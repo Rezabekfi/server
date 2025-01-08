@@ -10,7 +10,7 @@ private:
 
     // MAX 50 games
     // TODO: change to 50 (1 only for testing)
-    static constexpr size_t MAX_GAMES = 1;
+    static constexpr size_t MAX_GAMES = 50;
 
     int server_socket;
     std::vector<Player*> waiting_players;

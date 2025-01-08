@@ -163,7 +163,6 @@ void Message::add_players(std::vector<Player*> players) {
             value += ",";
         }
     }
-    value += ";";
     // here we do not check if the value is empty or not if it is I am throwing the pc out of the window.
     data[key] = value;
 }
