@@ -18,7 +18,10 @@ Move::Move(Message message) {
             is_valid_structure = false;
             return;
         }
-
+        if (*is_horizontal_opt != "true" && *is_horizontal_opt != "false") {
+            is_valid_structure = false;
+            return;
+        }
         is_horizontal = (*is_horizontal_opt == "true");
         player_id = std::stoi(*player_id_opt);
 
@@ -31,10 +34,15 @@ Move::Move(Message message) {
             if (delimiter_pos != std::string::npos) {
                 int row = std::stoi(pos_pair.substr(0, delimiter_pos));
                 int col = std::stoi(pos_pair.substr(delimiter_pos + 1));
+                if (row < 0 || col < 0) {
+                    is_valid_structure = false;
+                    return;
+                }
                 position.emplace_back(row, col);
             }
             pos_stream.ignore(1, ','); // Ignore the comma
         }
+
 
         is_valid_structure = true;
     } catch (const std::exception&) {

@@ -7,14 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add include directory
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# Add nlohmann/json
-include(FetchContent)
-FetchContent_Declare(
-    json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-)
-FetchContent_MakeAvailable(json)
-
 # Add all source files
 add_executable(quoridor_server
     src/main.cpp
@@ -26,4 +18,4 @@ add_executable(quoridor_server
 )
 
 # Link against pthread and nlohmann_json
-target_link_libraries(quoridor_server PRIVATE pthread nlohmann_json::nlohmann_json) 
+target_link_libraries(quoridor_server PRIVATE pthread) 

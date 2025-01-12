@@ -380,12 +380,20 @@ bool QuoridorServer::validate_client_message(QuoridorGame* game, Player* player,
         return false;
     }
     if (message.get_type() == MessageType::ACK) {
-        std::cout << "ACK received" << std::endl;
         return true;
     }
     Move move(message);
     if (!move.is_valid_structure) {
         player->send_message(Message::create_error("Invalid move structure"));
+        return false;
+    }
+    try {
+        if (move.get_player_id() + 1 != std::stoi(player->get_id())) {
+            player->send_message(Message::create_error("Not your turn"));
+            return false;
+        }
+    } catch (std::exception& e) {
+        player->send_message(Message::create_error("Invalid player ID"));
         return false;
     }
     return true;

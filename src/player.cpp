@@ -45,6 +45,10 @@ int Player::get_walls_left() const {
     return this->walls_left;
 }
 
+std::string Player::get_id() const {
+    return this->id;
+}
+
 void Player::set_goal_row(int goal_row) {
     this->goal_row = goal_row;
 }

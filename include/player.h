@@ -31,6 +31,7 @@ public:
     void set_walls_left(int walls_left);
     void set_goal_row(int goal_row);
     void set_game_id(int game_id);
+    std::string get_id() const;
     int get_walls_left() const;
     int get_goal_row() const;
     int get_game_id() const;

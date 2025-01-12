@@ -24,8 +24,6 @@ private:
     bool handle_game_message(QuoridorGame* game, Player* player, const char* message);
     bool validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message);
 
-    void handle_player_disconnection(QuoridorGame* game, Player* player);
-
     Player* initialize_player(int client_socket);
     bool handle_player_name_setup(Player* player);
     bool handle_matchmaking(Player* player);

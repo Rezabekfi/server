@@ -13,21 +13,30 @@ Message::Message() {
 }
 
 Message::Message(const std::string& message_string) {
-    std::istringstream stream(message_string);
-    std::string type_str;
-    std::string data_str;
-    std::getline(stream, type_str, '|');
-    type = string_to_message_type(type_str.substr(5)); // Remove "type:"
-    data_str = message_string.substr(type_str.length() + 1); // Remove "type:" and "|"
-    if (data_str.substr(0, 5) == "data:") {
-        extract_data(data_str.substr(5));
-    } else {
+    try {
+        if (message_string.empty() || message_string.length() < 10) {
+            type = MessageType::WRONG_MESSAGE;
+            return;
+        }
+        std::istringstream stream(message_string);
+        std::string type_str;
+        std::string data_str;
+        std::getline(stream, type_str, '|');
+        type = string_to_message_type(type_str.substr(5)); // Remove "type:"
+        data_str = message_string.substr(type_str.length() + 1); // Remove "type:" and "|"
+        if (data_str.substr(0, 5) == "data:") {
+            extract_data(data_str.substr(5));
+        } else {
+            type = MessageType::WRONG_MESSAGE;
+        }
+        
+        if (!validate()) {
+            type = MessageType::WRONG_MESSAGE;
+            set_data("message", "Invalid message structure");
+        }
+    } catch (std::exception& e) {
+        std::cerr << "Error in Message constructor: " << e.what() << std::endl;
         type = MessageType::WRONG_MESSAGE;
-    }
-    
-    if (!validate()) {
-        type = MessageType::WRONG_MESSAGE;
-        set_data("message", "Invalid message structure");
     }
 }
 
@@ -82,8 +91,25 @@ std::string Message::to_string() const {
     return message;
 }
 
+// only implemented for those types that server receives
 bool Message::validate() const {
-    return (type != MessageType::WRONG_MESSAGE);
+    switch (type) {
+        case MessageType::WELCOME:
+            return (data.find("message") != data.end());
+        case MessageType::MOVE:
+            // type:move|data:is_horizontal=false;player_id=1;position=[1,4];
+            return (data.find("is_horizontal") != data.end() &&
+                    data.find("player_id") != data.end() &&
+                    data.find("position") != data.end());
+        case MessageType::NAME_RESPONSE:
+            return (data.find("name") != data.end());
+        case MessageType::ABANDON:
+        case MessageType::ACK:
+        case MessageType::HEARTBEAT:
+            return true;
+        default:
+            return false;
+    }
 }
 
 Message Message::create_welcome(const std::string& message) {
