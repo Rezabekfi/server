@@ -37,6 +37,10 @@ void QuoridorServer::start(int port) {
     std::getline(settings_file, port_str);
     port = std::stoi(port_str);
 
+    if (port < 0 || port > 65535) {
+        throw std::runtime_error("Invalid port number in connection settings: " + port_str);
+    }
+
     std::cout << "Starting server on port " << port << "..." << std::endl;
     if (inet_pton(AF_INET, address.c_str(), &server_addr.sin_addr) <= 0) {
         throw std::runtime_error("Invalid IP address format in connection settings: " + address);

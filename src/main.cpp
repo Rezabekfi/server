@@ -15,7 +15,6 @@ int main() {
         int port;
         settings_file >> address >> port;
 
-        std::cout << "Starting server on port " << port << "..." << std::endl;
         QuoridorServer server;
         server.start(port);
     } catch (const std::exception& e) {
