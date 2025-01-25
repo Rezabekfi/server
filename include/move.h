@@ -2,7 +2,10 @@
 #include <string>
 #include <vector>
 #include "message.h"
-
+/**
+ * @brief Move class for storing the move information. It is created usually from Message object.
+ * Move class stores information about wall placements and player moves.
+ */
 class Move {
 public:
     int player_id; // will match current player id (0,1) - not the player id from the player object
@@ -23,6 +26,5 @@ public:
     void set_is_horizontal(bool is_horizontal);
     void set_position(std::vector<std::pair<int, int>> position);
     void set_player_id(int player_id);
-
     bool is_player_move() const;
 }; 
