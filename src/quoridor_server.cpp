@@ -420,7 +420,7 @@ QuoridorServer::~QuoridorServer() {
     running = false;
     std::this_thread::sleep_for(std::chrono::seconds(1)); // Give cleaner thread time to finish
     close(server_socket);
-    
+    std::cout << "Server closed" << std::endl;
     for (auto player : waiting_players) {
         close(player->socket);
         delete player;

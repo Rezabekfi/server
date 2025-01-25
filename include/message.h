@@ -4,7 +4,6 @@
 #include <optional>
 #include <vector>
 
-// Forward declarations
 class Player;
 class QuoridorGame;
 
@@ -43,9 +42,13 @@ public:
     void set_data(const std::string& key, const std::string& value);
     
     MessageType get_type() const;
+
+    // Get data from message by key and if it is not found return empty optional
     std::optional<std::string> get_data(const std::string& key) const;
-    
+
     std::string to_string() const;
+
+    // Check if message has all required fields
     bool validate() const;
 
     // Static factory methods
@@ -60,7 +63,8 @@ public:
     static Message create_player_disconnected(Player* player);
     static Message create_player_reconnected(Player* player);
     static Message create_ack();
-    // Type conversion helpers
+
+    // Type conversion
     static std::string message_type_to_string(MessageType type);
     static MessageType string_to_message_type(const std::string& typeStr);
 };

@@ -5,12 +5,13 @@
 
 class Move {
 public:
-    int player_id; // will match current player id (0,1)
+    int player_id; // will match current player id (0,1) - not the player id from the player object
     bool is_horizontal;
     bool is_valid_structure;
     std::vector<std::pair<int, int>> position; // if it is a wall there will be two positions
 
-    Move(bool is_horizontal, std::vector<std::pair<int, int>> position, int player_id);
+    Move(bool is_horizontal, std::vector<std::pair<int, int>> position, int player_id); // currently not used
+    // constructor for creating a move from a message
     Move(Message message);
 
     //getters

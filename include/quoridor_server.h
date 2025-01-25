@@ -9,7 +9,6 @@ class QuoridorServer {
 private:
 
     // MAX 50 games
-    // TODO: change to 50 (1 only for testing)
     static constexpr size_t MAX_GAMES = 50;
 
     int server_socket;
@@ -20,7 +19,6 @@ private:
     std::atomic<bool> running{true};
 
     void handle_client(int client_socket);
-    // if the client is disconnected return false or if the client sends an invalid message return false -> disconnect client
     bool handle_game_message(QuoridorGame* game, Player* player, const char* message);
     bool validate_client_message(QuoridorGame* game, Player* player, const char* message_string, Message& message);
 
